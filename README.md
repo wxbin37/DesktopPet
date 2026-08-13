@@ -24,9 +24,10 @@
 - BongoCat 风格键盘互动：监听真实按键，实时高亮键盘键位
 - 打字时小人趴在桌边，左手按真实敲击节奏下压/弹回
 - 走路窗口 mask 会按每帧同步刷新，避免脚、头发被裁切
-- 跑步/走路已升级为 8 帧步态循环：接触、回弹、抬脚、换脚，比原来的两张岔腿图来回闪更顺
+- 跑步/走路使用独立 4×2 透明 walking sprite sheet：腿部真实交替，不靠整张图缩放/旋转伪装动作
+- walking 8 帧使用同一个缩放比例和脚底锚点，避免人物忽大忽小或上下乱跳
 - 走路位移节奏与动画帧率同步，减少“身体在滑、腿在闪”的感觉
-- 走路素材已清理脚底独立残影/倒影组件
+- 走路素材已清理脚底独立残影/倒影组件和相邻格子漏出的孤立碎片
 - macOS 打包支持，输出 `.app`，可再制作 `.dmg` 分享包
 
 ## 快速运行
@@ -109,7 +110,7 @@ DesktopPet/
 ├── extract_typing_overlay.py     # 提取打字手部覆盖层
 ├── enhance_ui_assets.py          # 生成 3× 高清 Retina 素材
 ├── DesktopPet.spec               # PyInstaller 打包配置
-├── art/                          # 角色源图/透明角色表
+├── art/                          # 角色源图/透明角色表；可放 walking_sprite_sheet_alpha.png
 ├── assets/
 │   ├── blue_chibi/               # 标准透明动作素材
 │   └── blue_chibi_hd/            # 程序默认使用的高清素材
@@ -133,12 +134,13 @@ cp -R variants/desktop_pet_girl variants/desktop_pet_new_style
 1. 修改 `DesktopPet.spec` 里的 App 名称和 bundle id
 2. 修改 `main.py` 里的 `app.setApplicationName(...)`
 3. 准备新的 `art/fullbody_sprite_sheet_alpha.png`
-4. 运行 `build_fullbody_assets.py`
-5. 准备或生成新的打字趴桌图和手部覆盖层
-6. 运行 `extract_typing_overlay.py`
-7. 运行 `enhance_ui_assets.py`
-8. 跑 `test_core.py` 和短启动测试
-9. 打包 `.app` / `.dmg`
+4. 如需自然走路，准备新的 `art/walking_sprite_sheet_alpha.png`
+5. 运行 `build_fullbody_assets.py`
+6. 准备或生成新的打字趴桌图和手部覆盖层
+7. 运行 `extract_typing_overlay.py`
+8. 运行 `enhance_ui_assets.py`
+9. 跑 `test_core.py` 和短启动测试
+10. 打包 `.app` / `.dmg`
 
 详细模板见：[docs/CHARACTER_TEMPLATE.md](docs/CHARACTER_TEMPLATE.md)。
 

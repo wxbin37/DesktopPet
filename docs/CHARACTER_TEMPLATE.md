@@ -17,6 +17,7 @@ assets/blue_chibi_hd/
 | 类型 | 位置 | 说明 |
 | --- | --- | --- |
 | 4×3 角色源表 | `art/fullbody_sprite_sheet_alpha.png` | 用于生成站立、走路、睡觉等动作 |
+| 4×2 走路源表 | `art/walking_sprite_sheet_alpha.png` | 可选但推荐；用于生成真正腿部交替的 walking 动作 |
 | 标准动作帧 | `assets/blue_chibi/<state>/frame_000.png` | 透明 PNG，程序可直接读取 |
 | 高清动作帧 | `assets/blue_chibi_hd/<state>/frame_000.png` | Retina 友好，默认运行使用 |
 | 打字桌面底图 | `assets/blue_chibi/typing_mongocat_base.png` | 趴桌静止图 |
@@ -89,7 +90,28 @@ assets/blue_chibi/selfie/
 
 ## 四、走路动作注意事项
 
-当前基础版会用 `walk_a` 和 `walk_b` 两个源姿势生成 8 帧步态循环：接触、回弹、抬脚、换脚，然后进入另一只脚的同样阶段。脚本会加入轻微倾斜、压缩/伸展和上下起伏，避免只有两张岔腿图来回闪。
+推荐额外准备一张独立走路源表：
+
+```text
+art/walking_sprite_sheet_alpha.png
+```
+
+格式是 4 列 × 2 行透明 PNG，一共 8 帧：
+
+```text
+┌────────────┬────────────┬────────────┬────────────┐
+│ contact A  │ rebound A  │ passing A  │ lift A     │
+├────────────┼────────────┼────────────┼────────────┤
+│ contact B  │ rebound B  │ passing B  │ lift B     │
+└────────────┴────────────┴────────────┴────────────┘
+```
+
+只要这个文件存在，`build_fullbody_assets.py` 会优先使用它生成 `walking`。这比只用 `walk_a` / `walk_b` 两张图自然得多，因为腿部是真的在换步。
+
+注意：不要用整张图缩放、压扁、拉伸或旋转来伪装跑步。那会看起来像角色在忽大忽小，而不是腿在动。当前脚本对 walking 做了两个保护：
+
+- 8 帧使用同一个缩放比例，不按每帧外框单独适配大小
+- 以脚底为锚点对齐，减少上下乱跳
 
 好看的走路素材应该满足：
 
@@ -100,8 +122,9 @@ assets/blue_chibi/selfie/
 - 每一帧人物高度不要差太大
 - 脚不要贴画布底边
 - 不要让鞋子和腿被衣服完全遮住
+- 不要有地面阴影、倒影、相邻格子漏出的碎片
 
-如果要继续优化跑步动作，推荐提供更多源姿势（例如 `walk_contact`、`walk_down`、`walk_pass`、`walk_up`），再在 `build_fullbody_assets.py` 的 `STATE_FRAMES["walking"]` 中加入更多真实中间帧。只有 `walk_a/walk_b` 两张源图时，脚本会尽量通过变形缓和过渡，但无法做到真正逐关节动画。
+如果没有 `art/walking_sprite_sheet_alpha.png`，脚本会退回使用 4×3 源表里的 `walk_a` / `walk_b` 生成基础 walking 帧。这个 fallback 只适合临时占位；要想自然，仍建议单独生成 4×2 walking 源表。
 
 ## 五、打字桌面 UI 素材
 
@@ -175,29 +198,30 @@ cp -R variants/desktop_pet_girl variants/desktop_pet_new_style
 2. 修改 `main.py`
    - `app.setApplicationName(...)`
 3. 替换 `art/fullbody_sprite_sheet_alpha.png`
-4. 生成标准动作帧：
+4. 可选但推荐：替换 `art/walking_sprite_sheet_alpha.png`
+5. 生成标准动作帧：
    ```bash
    python build_fullbody_assets.py
    ```
-5. 替换打字趴桌图：
+6. 替换打字趴桌图：
    ```text
    assets/blue_chibi/typing_mongocat_base.png
    assets/blue_chibi/typing_mongocat_tap.png
    ```
-6. 提取手部覆盖层：
+7. 提取手部覆盖层：
    ```bash
    python extract_typing_overlay.py
    ```
-7. 生成高清素材：
+8. 生成高清素材：
    ```bash
    python enhance_ui_assets.py
    ```
-8. 测试：
+9. 测试：
    ```bash
    python test_core.py
    python main.py
    ```
-9. 打包：
+10. 打包：
    ```bash
    python -m PyInstaller --noconfirm --clean DesktopPet.spec
    ```

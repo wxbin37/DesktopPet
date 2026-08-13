@@ -10,6 +10,8 @@ dist/
 *.dmg
 *.zip
 *.log
+art/*_key.png
+**/art/*_key.png
 .pytest_cache/
 .mypy_cache/
 .coverage

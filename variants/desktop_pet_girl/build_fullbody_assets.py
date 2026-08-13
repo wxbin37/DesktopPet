@@ -7,9 +7,11 @@ from PIL import Image
 
 PROJECT_DIR = Path(__file__).resolve().parent
 SHEET_PATH = PROJECT_DIR / "art" / "fullbody_sprite_sheet_alpha.png"
+WALKING_SHEET_PATH = PROJECT_DIR / "art" / "walking_sprite_sheet_alpha.png"
 OUTPUT_DIR = PROJECT_DIR / "assets" / "blue_chibi"
 FRAME_SIZE = (320, 320)
 GRID = (4, 3)
+WALKING_GRID = (4, 2)
 
 
 POSES = {
@@ -38,17 +40,18 @@ STATE_FRAMES = {
         ("idle_stand", 0, 0),
     ],
     "walking": [
-        # 8-phase gait: contact -> rebound -> lift -> switch, then the other
-        # leg. We avoid inserting a straight idle frame because it makes the
-        # run look like it briefly stops between steps.
-        ("walk_a", -2, 3, -2.0, 1.014, 0.984),
-        ("walk_a", -1, 1, -1.2, 1.006, 0.996),
-        ("walk_a", 0, -2, -0.3, 0.994, 1.014),
-        ("walk_b", 1, -1, 0.8, 0.998, 1.006),
-        ("walk_b", 2, 3, 2.0, 1.014, 0.984),
-        ("walk_b", 1, 1, 1.2, 1.006, 0.996),
-        ("walk_b", 0, -2, 0.3, 0.994, 1.014),
-        ("walk_a", -1, -1, -0.8, 0.998, 1.006),
+        # Fallback only. When art/walking_sprite_sheet_alpha.png exists, the
+        # script uses that dedicated 4x2 walking cycle instead. Do not fake a
+        # gait here by scaling or rotating the whole body; it reads as the
+        # image pulsing rather than the legs moving.
+        ("walk_a", -1, 2),
+        ("walk_a", 0, 0),
+        ("walk_b", 1, -1),
+        ("walk_b", 1, 0),
+        ("walk_b", 1, 2),
+        ("walk_b", 0, 0),
+        ("walk_a", -1, -1),
+        ("walk_a", -1, 0),
     ],
     "typing": [
         ("typing_a", 0, 4),
@@ -99,8 +102,8 @@ STATE_FRAMES = {
 }
 
 
-def crop_cell(sheet, index):
-    cols, rows = GRID
+def crop_cell(sheet, index, grid=GRID):
+    cols, rows = grid
     col = index % cols
     row = index // cols
     left = round(sheet.width * col / cols)
@@ -209,42 +212,71 @@ def remove_detached_lower_artifacts(image):
     return cleaned if removed else image
 
 
+def remove_remote_artifacts(image, margin=4):
+    """Remove isolated fragments that leaked in from neighbouring sprite cells."""
+    image = image.convert("RGBA")
+    components = alpha_components(image)
+    if len(components) < 2:
+        return image
+
+    main = max(components, key=lambda component: component["area"])
+    main_left, main_top, main_right, main_bottom = main["bbox"]
+    keep_box = (
+        main_left - margin,
+        main_top - margin,
+        main_right + margin,
+        main_bottom + margin,
+    )
+
+    cleaned = image.copy()
+    output_pixels = cleaned.load()
+    removed = False
+    for component in components:
+        if component is main:
+            continue
+
+        left, top, right, bottom = component["bbox"]
+        overlaps_keep_box = not (
+            right < keep_box[0]
+            or left > keep_box[2]
+            or bottom < keep_box[1]
+            or top > keep_box[3]
+        )
+        if overlaps_keep_box:
+            continue
+
+        for x, y in component["pixels"]:
+            red, green, blue, _alpha = output_pixels[x, y]
+            output_pixels[x, y] = (red, green, blue, 0)
+        removed = True
+
+    return cleaned if removed else image
+
+
 def fit_to_frame(
     image,
     dx=0,
     dy=0,
     clean_lower_artifacts=False,
-    angle=0,
-    scale_x=1.0,
-    scale_y=1.0,
+    anchor_bottom=False,
+    scale_override=None,
 ):
     image = trim_alpha(image).convert("RGBA")
     max_w = FRAME_SIZE[0] - 28
     max_h = FRAME_SIZE[1] - 28
-    scale = min(max_w / image.width, max_h / image.height)
+    scale = scale_override if scale_override is not None else min(max_w / image.width, max_h / image.height)
     size = (max(1, round(image.width * scale)), max(1, round(image.height * scale)))
     image = image.resize(size, Image.Resampling.LANCZOS)
-    if scale_x != 1.0 or scale_y != 1.0:
-        image = image.resize(
-            (
-                max(1, round(image.width * scale_x)),
-                max(1, round(image.height * scale_y)),
-            ),
-            Image.Resampling.LANCZOS,
-        )
-    if angle:
-        image = image.rotate(
-            angle,
-            Image.Resampling.BICUBIC,
-            expand=True,
-            fillcolor=(0, 0, 0, 0),
-        )
 
     frame = Image.new("RGBA", FRAME_SIZE, (0, 0, 0, 0))
     x = (FRAME_SIZE[0] - image.width) // 2 + dx
-    y = (FRAME_SIZE[1] - image.height) // 2 + dy
+    if anchor_bottom:
+        y = FRAME_SIZE[1] - image.height - 14 + dy
+    else:
+        y = (FRAME_SIZE[1] - image.height) // 2 + dy
     frame.alpha_composite(image, (x, y))
     if clean_lower_artifacts:
+        frame = remove_remote_artifacts(frame)
         frame = remove_detached_lower_artifacts(frame)
     return frame
 
@@ -255,33 +287,60 @@ def clear_state_dir(path):
         frame.unlink()
 
 
-def parse_frame_spec(spec):
-    """Support simple specs and richer motion specs for walking frames."""
-    pose_name, dx, dy, *motion = spec
-    angle = motion[0] if len(motion) > 0 else 0
-    scale_x = motion[1] if len(motion) > 1 else 1.0
-    scale_y = motion[2] if len(motion) > 2 else 1.0
-    return pose_name, dx, dy, angle, scale_x, scale_y
+def build_custom_walking_frames():
+    """Load a real 8-frame walking cycle when a dedicated sheet is present."""
+    if not WALKING_SHEET_PATH.exists():
+        return None
+
+    walking_sheet = Image.open(WALKING_SHEET_PATH).convert("RGBA")
+    frame_count = WALKING_GRID[0] * WALKING_GRID[1]
+    raw_frames = [
+        trim_alpha(crop_cell(walking_sheet, index, WALKING_GRID)).convert("RGBA")
+        for index in range(frame_count)
+    ]
+
+    # Use one shared scale for the whole gait. Per-frame fitting makes tucked
+    # legs appear larger and extended legs appear smaller, which looks like the
+    # entire sprite is pulsing instead of walking.
+    max_w = FRAME_SIZE[0] - 28
+    max_h = FRAME_SIZE[1] - 28
+    widest = max(frame.width for frame in raw_frames)
+    tallest = max(frame.height for frame in raw_frames)
+    shared_scale = min(max_w / widest, max_h / tallest)
+
+    return [
+        fit_to_frame(
+            frame,
+            clean_lower_artifacts=True,
+            anchor_bottom=True,
+            scale_override=shared_scale,
+        )
+        for frame in raw_frames
+    ]
 
 
 def main():
     sheet = Image.open(SHEET_PATH).convert("RGBA")
     pose_images = {name: crop_cell(sheet, index) for name, index in POSES.items()}
+    custom_walking_frames = build_custom_walking_frames()
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     for state, frames in STATE_FRAMES.items():
         state_dir = OUTPUT_DIR / state
         clear_state_dir(state_dir)
+
+        if state == "walking" and custom_walking_frames:
+            for i, frame in enumerate(custom_walking_frames):
+                frame.save(state_dir / f"frame_{i:03d}.png")
+            continue
+
         for i, spec in enumerate(frames):
-            pose_name, dx, dy, angle, scale_x, scale_y = parse_frame_spec(spec)
+            pose_name, dx, dy = spec
             frame = fit_to_frame(
                 pose_images[pose_name],
                 dx,
                 dy,
                 clean_lower_artifacts=(state == "walking"),
-                angle=angle,
-                scale_x=scale_x,
-                scale_y=scale_y,
             )
             frame.save(state_dir / f"frame_{i:03d}.png")
 
