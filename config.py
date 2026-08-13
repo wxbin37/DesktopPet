@@ -34,6 +34,7 @@ IDLE_INTERVAL = 3000  # 待机状态切换间隔(ms)
 WALK_SPEED = 2  # 走路速度(像素/帧)
 WALK_RANGE = 48  # 自动走路时离当前位置的最大距离(像素)
 WALK_INTERVAL = 5000  # 走路触发间隔(ms)
+WALK_STEP_INTERVAL = int(1000 / FPS)  # 走路位移和动画帧同步，避免腿在闪、身体在滑
 SLEEP_AFTER_IDLE = 30000  # 多久无操作后睡觉(ms)
 
 # 键盘互动

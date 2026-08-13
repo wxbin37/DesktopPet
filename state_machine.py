@@ -6,7 +6,7 @@ import time
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer
 from config import (
     PetState, STATE_PRIORITY, STATE_TRANSITION,
-    IDLE_INTERVAL, WALK_INTERVAL, SLEEP_AFTER_IDLE
+    IDLE_INTERVAL, WALK_INTERVAL, WALK_STEP_INTERVAL, SLEEP_AFTER_IDLE
 )
 
 
@@ -126,7 +126,7 @@ class StateMachine(QObject):
             # 随机走路时长
             duration = random.randint(2000, 5000)
             self.walk_timer.start(duration)
-            self.walk_step_timer.start(50)  # 每50ms走一步
+            self.walk_step_timer.start(WALK_STEP_INTERVAL)
             # 随机方向
             self.walk_direction = random.choice([-1, 1])
         

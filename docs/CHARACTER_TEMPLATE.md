@@ -89,7 +89,7 @@ assets/blue_chibi/selfie/
 
 ## 四、走路动作注意事项
 
-当前基础版走路帧使用 `walk_a` 和 `walk_b` 两个姿势循环，再配合窗口移动、上下起伏和方向翻转。
+当前基础版会用 `walk_a` 和 `walk_b` 两个源姿势生成 8 帧步态循环：接触、回弹、抬脚、换脚，然后进入另一只脚的同样阶段。脚本会加入轻微倾斜、压缩/伸展和上下起伏，避免只有两张岔腿图来回闪。
 
 好看的走路素材应该满足：
 
@@ -101,7 +101,7 @@ assets/blue_chibi/selfie/
 - 脚不要贴画布底边
 - 不要让鞋子和腿被衣服完全遮住
 
-如果要继续优化跑步动作，推荐把 `walking` 从 6 帧扩展到 8 或 10 帧，并在 `build_fullbody_assets.py` 的 `STATE_FRAMES["walking"]` 中加入更多中间姿势。
+如果要继续优化跑步动作，推荐提供更多源姿势（例如 `walk_contact`、`walk_down`、`walk_pass`、`walk_up`），再在 `build_fullbody_assets.py` 的 `STATE_FRAMES["walking"]` 中加入更多真实中间帧。只有 `walk_a/walk_b` 两张源图时，脚本会尽量通过变形缓和过渡，但无法做到真正逐关节动画。
 
 ## 五、打字桌面 UI 素材
 
@@ -214,4 +214,3 @@ cp -R variants/desktop_pet_girl variants/desktop_pet_new_style
 - 打字时真实键位能高亮
 - 手部下压和弹回节奏自然
 - `dist/`、`.dmg`、`.venv/` 不提交到 Git
-

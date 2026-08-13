@@ -38,12 +38,17 @@ STATE_FRAMES = {
         ("idle_stand", 0, 0),
     ],
     "walking": [
-        ("walk_a", 0, 2),
-        ("walk_a", 0, -2),
-        ("walk_b", 0, 1),
-        ("walk_b", 0, -2),
-        ("walk_a", 0, 2),
-        ("walk_b", 0, 0),
+        # 8-phase gait: contact -> rebound -> lift -> switch, then the other
+        # leg. We avoid inserting a straight idle frame because it makes the
+        # run look like it briefly stops between steps.
+        ("walk_a", -2, 3, -2.0, 1.014, 0.984),
+        ("walk_a", -1, 1, -1.2, 1.006, 0.996),
+        ("walk_a", 0, -2, -0.3, 0.994, 1.014),
+        ("walk_b", 1, -1, 0.8, 0.998, 1.006),
+        ("walk_b", 2, 3, 2.0, 1.014, 0.984),
+        ("walk_b", 1, 1, 1.2, 1.006, 0.996),
+        ("walk_b", 0, -2, 0.3, 0.994, 1.014),
+        ("walk_a", -1, -1, -0.8, 0.998, 1.006),
     ],
     "typing": [
         ("typing_a", 0, 4),
@@ -204,13 +209,36 @@ def remove_detached_lower_artifacts(image):
     return cleaned if removed else image
 
 
-def fit_to_frame(image, dx=0, dy=0, clean_lower_artifacts=False):
+def fit_to_frame(
+    image,
+    dx=0,
+    dy=0,
+    clean_lower_artifacts=False,
+    angle=0,
+    scale_x=1.0,
+    scale_y=1.0,
+):
     image = trim_alpha(image).convert("RGBA")
     max_w = FRAME_SIZE[0] - 28
     max_h = FRAME_SIZE[1] - 28
     scale = min(max_w / image.width, max_h / image.height)
     size = (max(1, round(image.width * scale)), max(1, round(image.height * scale)))
     image = image.resize(size, Image.Resampling.LANCZOS)
+    if scale_x != 1.0 or scale_y != 1.0:
+        image = image.resize(
+            (
+                max(1, round(image.width * scale_x)),
+                max(1, round(image.height * scale_y)),
+            ),
+            Image.Resampling.LANCZOS,
+        )
+    if angle:
+        image = image.rotate(
+            angle,
+            Image.Resampling.BICUBIC,
+            expand=True,
+            fillcolor=(0, 0, 0, 0),
+        )
 
     frame = Image.new("RGBA", FRAME_SIZE, (0, 0, 0, 0))
     x = (FRAME_SIZE[0] - image.width) // 2 + dx
@@ -227,6 +255,15 @@ def clear_state_dir(path):
         frame.unlink()
 
 
+def parse_frame_spec(spec):
+    """Support simple specs and richer motion specs for walking frames."""
+    pose_name, dx, dy, *motion = spec
+    angle = motion[0] if len(motion) > 0 else 0
+    scale_x = motion[1] if len(motion) > 1 else 1.0
+    scale_y = motion[2] if len(motion) > 2 else 1.0
+    return pose_name, dx, dy, angle, scale_x, scale_y
+
+
 def main():
     sheet = Image.open(SHEET_PATH).convert("RGBA")
     pose_images = {name: crop_cell(sheet, index) for name, index in POSES.items()}
@@ -235,12 +272,16 @@ def main():
     for state, frames in STATE_FRAMES.items():
         state_dir = OUTPUT_DIR / state
         clear_state_dir(state_dir)
-        for i, (pose_name, dx, dy) in enumerate(frames):
+        for i, spec in enumerate(frames):
+            pose_name, dx, dy, angle, scale_x, scale_y = parse_frame_spec(spec)
             frame = fit_to_frame(
                 pose_images[pose_name],
                 dx,
                 dy,
                 clean_lower_artifacts=(state == "walking"),
+                angle=angle,
+                scale_x=scale_x,
+                scale_y=scale_y,
             )
             frame.save(state_dir / f"frame_{i:03d}.png")
 
