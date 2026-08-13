@@ -122,7 +122,7 @@ def trim_alpha(image):
 
 
 def alpha_components(image, threshold=2):
-    """Return connected alpha components, used to remove detached floor shadows."""
+    """Return connected alpha components for artifact cleanup."""
     alpha = image.getchannel("A")
     width, height = alpha.size
     pixels = alpha.load()
@@ -212,7 +212,7 @@ def remove_detached_lower_artifacts(image):
     return cleaned if removed else image
 
 
-def remove_remote_artifacts(image, margin=4):
+def remove_remote_artifacts(image, margin=8):
     """Remove isolated fragments that leaked in from neighbouring sprite cells."""
     image = image.convert("RGBA")
     components = alpha_components(image)
@@ -258,6 +258,7 @@ def fit_to_frame(
     dx=0,
     dy=0,
     clean_lower_artifacts=False,
+    clean_remote_artifacts=True,
     anchor_bottom=False,
     scale_override=None,
 ):
@@ -275,8 +276,9 @@ def fit_to_frame(
     else:
         y = (FRAME_SIZE[1] - image.height) // 2 + dy
     frame.alpha_composite(image, (x, y))
-    if clean_lower_artifacts:
+    if clean_remote_artifacts:
         frame = remove_remote_artifacts(frame)
+    if clean_lower_artifacts:
         frame = remove_detached_lower_artifacts(frame)
     return frame
 
