@@ -84,9 +84,11 @@ STATE_PRIORITY = {
 # 状态切换概率
 STATE_TRANSITION = {
     PetState.IDLE: {
-        PetState.WALKING: 0.3,
-        PetState.HAPPY: 0.1,
-        PetState.IDLE: 0.6,
+        PetState.IDLE: 0.5,
+        PetState.WALKING: 0.25,
+        PetState.HAPPY: 0.12,
+        PetState.SLEEPING: 0.08,
+        PetState.SELFIE: 0.05,
     },
     PetState.WALKING: {
         PetState.IDLE: 0.5,

@@ -132,6 +132,7 @@ class StateMachine(QObject):
         
         elif new_state == PetState.SLEEPING:
             self.idle_timer.stop()
+            self.sleep_timer.stop()
         
         elif new_state == PetState.TYPING:
             self.idle_timer.stop()
@@ -192,7 +193,7 @@ class StateMachine(QObject):
     def notify_activity(self):
         """通知有活动（重置睡眠计时器）"""
         if self.current_state == PetState.SLEEPING:
-            self._change_state(PetState.IDLE)
+            self.request_state(PetState.WAKEUP, priority_override=True)
         elif self.current_state == PetState.IDLE:
             self.sleep_timer.start(SLEEP_AFTER_IDLE)
     
