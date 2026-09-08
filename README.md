@@ -1,6 +1,6 @@
 # DesktopPet
 
-一个 macOS 桌面宠物项目：融合了 **OnePic Desktop Pet** 的多状态桌宠思路，以及 **BongoCat / Mongocat** 风格的键盘互动。桌宠会常驻最前端、可拖拽、可自动待机/走路/睡觉，并在你敲键盘时切换为趴在桌边敲键盘的状态。
+一个支持 macOS 和 Windows 的桌面宠物项目：融合了 **OnePic Desktop Pet** 的多状态桌宠思路，以及 **BongoCat / Mongocat** 风格的键盘互动。桌宠会常驻最前端、可拖拽、可自动待机/走路/睡觉，并在你敲键盘时切换为趴在桌边敲键盘的状态。
 
 当前仓库保存的是一个稳定底座，适合继续扩展跑步动作、替换角色风格、制作不同人物版本。
 
@@ -29,6 +29,7 @@
 - 走路位移节奏与动画帧率同步，减少“身体在滑、腿在闪”的感觉
 - 走路素材已清理脚底独立残影/倒影组件和相邻格子漏出的孤立碎片
 - macOS 打包支持，输出 `.app`，可再制作 `.dmg` 分享包
+- Windows 10/11 x64 打包支持，输出免安装单文件 `.exe`
 
 ## 快速运行
 
@@ -59,6 +60,15 @@ python3 -m venv .venv
 3. 重新启动桌宠
 
 如果没有授权，桌宠本体仍能运行，只是不会自动响应真实键盘输入。
+
+## Windows 直接运行
+
+从 GitHub Releases 下载对应版本：
+
+- `DesktopPet-Windows-x64.exe`：男生版
+- `DesktopPetGirl-Windows-x64.exe`：女生版
+
+Windows 版不需要安装 Python。下载后直接双击即可，操作方式和 macOS 版一致。当前程序没有商业代码签名证书，第一次打开时 Windows 可能显示安全提醒，详情见 [Windows 使用说明](docs/WINDOWS.md)。
 
 ## 打包 App
 
@@ -94,6 +104,20 @@ dist/DesktopPetGirl.app
 hdiutil create -volname DesktopPet -srcfolder dist/DesktopPet.app -ov -format UDZO dist/DesktopPet.dmg
 ```
 
+## 打包 Windows EXE
+
+PyInstaller 不能在 macOS 上直接生成真正的 Windows 程序。本仓库使用 Windows GitHub Actions 自动打包和测试，工作流位于 `.github/workflows/build-windows.yml`。
+
+如果在 Windows 电脑本地打包男生版：
+
+```powershell
+py -m venv .venv
+.venv\Scripts\python -m pip install -r requirements-windows.txt
+.venv\Scripts\python -m PyInstaller --noconfirm --clean DesktopPet.Windows.spec
+```
+
+输出为 `dist\DesktopPet.exe`。女生版在 `variants\desktop_pet_girl` 中使用对应的 `DesktopPet.Windows.spec`，输出为 `dist\DesktopPetGirl.exe`。
+
 ## 项目结构
 
 ```text
@@ -110,13 +134,16 @@ DesktopPet/
 ├── extract_typing_overlay.py     # 提取打字手部覆盖层
 ├── enhance_ui_assets.py          # 生成 3× 高清 Retina 素材
 ├── DesktopPet.spec               # PyInstaller 打包配置
+├── DesktopPet.Windows.spec       # Windows 单文件 EXE 打包配置
+├── requirements-windows.txt      # Windows 运行/打包依赖
 ├── art/                          # 角色源图/透明角色表；可放 walking_sprite_sheet_alpha.png
 ├── assets/
 │   ├── blue_chibi/               # 标准透明动作素材
 │   └── blue_chibi_hd/            # 程序默认使用的高清素材
 ├── docs/
 │   ├── CHARACTER_TEMPLATE.md     # 制作新角色素材的模板流程
-│   └── DEVELOPMENT.md            # 开发、测试、打包和版本说明
+│   ├── DEVELOPMENT.md            # 开发、测试、打包和版本说明
+│   └── WINDOWS.md                # Windows 版使用说明
 └── variants/
     └── desktop_pet_girl/         # 女生版独立变体
 ```

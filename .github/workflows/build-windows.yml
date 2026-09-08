@@ -1,0 +1,131 @@
+name: Build Windows executables
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Windows x64
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          architecture: "x64"
+          cache: pip
+          cache-dependency-path: requirements-windows.txt
+
+      - name: Install build dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-windows.txt
+
+      - name: Test source and Windows keyboard backend
+        shell: pwsh
+        run: |
+          python test_core.py
+          python -c "from keyboard_monitor import KeyboardMonitor; print('Windows keyboard backend import: OK')"
+          Push-Location variants/desktop_pet_girl
+          python test_core.py
+          python -c "from keyboard_monitor import KeyboardMonitor; print('Windows girl keyboard backend import: OK')"
+          Pop-Location
+
+      - name: Build male executable
+        shell: pwsh
+        run: python -m PyInstaller --noconfirm --clean DesktopPet.Windows.spec
+
+      - name: Build female executable
+        shell: pwsh
+        run: |
+          Push-Location variants/desktop_pet_girl
+          python -m PyInstaller --noconfirm --clean DesktopPet.Windows.spec
+          Pop-Location
+
+      - name: Smoke test packaged applications
+        shell: pwsh
+        run: |
+          $env:QT_QPA_PLATFORM = "offscreen"
+
+          function Test-DesktopPet([string]$Path) {
+            $process = Start-Process -FilePath $Path -ArgumentList "--smoke-test-ms=2200" -PassThru
+            if (-not $process.WaitForExit(30000)) {
+              $process.Kill()
+              throw "Smoke test timed out: $Path"
+            }
+            if ($process.ExitCode -ne 0) {
+              throw "Smoke test failed with exit code $($process.ExitCode): $Path"
+            }
+          }
+
+          Test-DesktopPet "dist/DesktopPet.exe"
+          Test-DesktopPet "variants/desktop_pet_girl/dist/DesktopPetGirl.exe"
+
+      - name: Prepare shareable packages
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path windows-package/DesktopPet | Out-Null
+          New-Item -ItemType Directory -Force -Path windows-package/DesktopPetGirl | Out-Null
+
+          Copy-Item dist/DesktopPet.exe windows-package/DesktopPet/DesktopPet.exe
+          Copy-Item variants/desktop_pet_girl/dist/DesktopPetGirl.exe windows-package/DesktopPetGirl/DesktopPetGirl.exe
+          Copy-Item docs/WINDOWS.md windows-package/DesktopPet/Windows使用说明.md
+          Copy-Item docs/WINDOWS.md windows-package/DesktopPetGirl/Windows使用说明.md
+
+          Copy-Item dist/DesktopPet.exe windows-package/DesktopPet-Windows-x64.exe
+          Copy-Item variants/desktop_pet_girl/dist/DesktopPetGirl.exe windows-package/DesktopPetGirl-Windows-x64.exe
+
+          Compress-Archive -Path windows-package/DesktopPet/* -DestinationPath windows-package/DesktopPet-Windows-x64.zip
+          Compress-Archive -Path windows-package/DesktopPetGirl/* -DestinationPath windows-package/DesktopPetGirl-Windows-x64.zip
+
+          $checksumFiles = @(
+            "windows-package/DesktopPet-Windows-x64.exe",
+            "windows-package/DesktopPetGirl-Windows-x64.exe",
+            "windows-package/DesktopPet-Windows-x64.zip",
+            "windows-package/DesktopPetGirl-Windows-x64.zip"
+          )
+          $checksums = foreach ($file in $checksumFiles) {
+            $hash = (Get-FileHash -Algorithm SHA256 $file).Hash.ToLower()
+            "$hash  $([System.IO.Path]::GetFileName($file))"
+          }
+          $checksums | Set-Content -Encoding utf8 windows-package/SHA256SUMS.txt
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DesktopPet-Windows-x64
+          path: |
+            windows-package/*.exe
+            windows-package/*.zip
+            windows-package/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish downloadable Windows release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "windows-build-${{ github.run_number }}"
+          gh release create $tag `
+            windows-package/DesktopPet-Windows-x64.exe `
+            windows-package/DesktopPetGirl-Windows-x64.exe `
+            windows-package/DesktopPet-Windows-x64.zip `
+            windows-package/DesktopPetGirl-Windows-x64.zip `
+            windows-package/SHA256SUMS.txt `
+            --target "${{ github.sha }}" `
+            --title "DesktopPet Windows x64 - Build ${{ github.run_number }}" `
+            --notes "Windows 10/11 64 位免安装版本。DesktopPet 为男生版，DesktopPetGirl 为女生版；下载 exe 后可直接双击运行。" `
+            --prerelease

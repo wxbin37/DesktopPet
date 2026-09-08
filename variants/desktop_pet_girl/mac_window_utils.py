@@ -1,9 +1,10 @@
-"""macOS native window helpers."""
+"""Native helpers for keeping the pet topmost without taking focus."""
 import platform
 from ctypes import c_bool, c_char_p, c_long, c_ulong, c_void_p, cdll
 
 
 IS_MAC = platform.system() == "Darwin"
+IS_WINDOWS = platform.system() == "Windows"
 
 
 if IS_MAC:
@@ -11,6 +12,16 @@ if IS_MAC:
     objc.sel_registerName.argtypes = [c_char_p]
     objc.sel_registerName.restype = c_void_p
     objc.objc_msgSend.restype = c_void_p
+
+
+def _using_headless_qt_platform():
+    """Native window APIs are unsafe with Qt's synthetic test backends."""
+    try:
+        from PyQt6.QtGui import QGuiApplication
+
+        return QGuiApplication.platformName().lower() in {"offscreen", "minimal"}
+    except Exception:
+        return False
 
 
 def _sel(name):
@@ -24,7 +35,39 @@ def _send(obj, selector, restype=c_void_p, argtypes=None, *args):
 
 
 def apply_strong_topmost(widget):
-    """Keep a PyQt widget above normal windows, spaces, and fullscreen apps."""
+    """Keep a PyQt widget above normal windows without activating it."""
+    if _using_headless_qt_platform():
+        return False
+
+    if IS_WINDOWS:
+        try:
+            from ctypes import windll
+
+            hwnd = int(widget.winId())
+            if not hwnd:
+                return False
+
+            hwnd_topmost = -1
+            swp_nosize = 0x0001
+            swp_nomove = 0x0002
+            swp_noactivate = 0x0010
+            swp_showwindow = 0x0040
+            flags = swp_nosize | swp_nomove | swp_noactivate | swp_showwindow
+            return bool(
+                windll.user32.SetWindowPos(
+                    hwnd,
+                    hwnd_topmost,
+                    0,
+                    0,
+                    0,
+                    0,
+                    flags,
+                )
+            )
+        except Exception as exc:
+            print(f"Windows 强置顶设置失败: {exc}")
+            return False
+
     if not IS_MAC:
         return False
 
@@ -71,6 +114,9 @@ def apply_strong_topmost(widget):
 
 def set_ignores_mouse_events(widget, enabled):
     """Let mouse clicks pass through the desktop pet window on macOS."""
+    if _using_headless_qt_platform():
+        return False
+
     if not IS_MAC:
         return False
 

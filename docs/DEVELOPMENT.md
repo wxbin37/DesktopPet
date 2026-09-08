@@ -6,7 +6,7 @@
 
 推荐：
 
-- macOS
+- macOS 或 Windows 10/11 x64
 - Python 3.9+
 - PyQt6
 - Pillow
@@ -30,10 +30,12 @@ python3 -m venv .venv
 | `state_machine.py` | 状态切换、自动待机、走路、睡觉 |
 | `animation_manager.py` | 加载各状态 PNG 帧并按 FPS 播放 |
 | `keyboard_monitor_mac.py` | macOS Quartz 全局键盘监听 |
+| `keyboard_monitor.py` | Windows/Linux pynput 全局键盘监听；回调通过 Qt 信号回到主线程 |
 | `build_fullbody_assets.py` | 从 4×3 角色表生成标准动作帧 |
 | `extract_typing_overlay.py` | 从趴桌图中提取手部覆盖层 |
 | `enhance_ui_assets.py` | 生成高清 Retina 素材 |
 | `DesktopPet.spec` | PyInstaller 打包配置 |
+| `DesktopPet.Windows.spec` | Windows 单文件 EXE 打包配置 |
 
 ## 三、状态系统
 
@@ -131,6 +133,8 @@ dist/DesktopPetGirl.app/Contents/MacOS/DesktopPetGirl --smoke-test-ms=2200
 
 ## 七、打包流程
 
+### macOS
+
 ```bash
 .venv/bin/python -m PyInstaller --noconfirm --clean DesktopPet.spec
 ```
@@ -146,6 +150,28 @@ codesign --verify --deep --strict --verbose=1 dist/DesktopPet.app
 ```bash
 hdiutil create -volname DesktopPet -srcfolder dist/DesktopPet.app -ov -format UDZO dist/DesktopPet.dmg
 ```
+
+### Windows
+
+Windows 包必须在 Windows 环境构建，不能用 macOS 版 PyInstaller 交叉生成：
+
+```powershell
+py -m venv .venv
+.venv\Scripts\python -m pip install -r requirements-windows.txt
+.venv\Scripts\python -m PyInstaller --noconfirm --clean DesktopPet.Windows.spec
+```
+
+输出：`dist\DesktopPet.exe`。
+
+仓库的 `.github/workflows/build-windows.yml` 会在真实 Windows x64 环境中完成以下检查：
+
+1. 核心素材和状态测试
+2. Windows 键盘监听后端导入测试
+3. 男生版和女生版单文件打包
+4. 两个 EXE 的无界面短启动测试
+5. 生成 ZIP、SHA-256 校验文件和 GitHub Release 下载包
+
+Windows 版通过 `Qt.WindowStaysOnTopHint` 和 Win32 `SetWindowPos(HWND_TOPMOST, SWP_NOACTIVATE)` 保持置顶；监听器只观察键盘事件，不注入输入，也不会主动切换窗口焦点。
 
 ## 八、Git 规则
 

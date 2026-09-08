@@ -4,6 +4,7 @@
 """
 import sys
 import os
+import platform
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from config import ASSETS_DIR, DEFAULT_CHARACTER, PET_STATES, PetState, STATE_PRIORITY, STATE_TRANSITION
@@ -65,12 +66,29 @@ def test_state_machine_logic():
     print()
 
 
+def test_windows_keyboard_layout():
+    """Windows 构建时检查真实键位映射和 Windows 键帽。"""
+    if platform.system() != "Windows":
+        return
+
+    from pet_window import KEYBOARD_ROWS, PetWindow
+
+    key_ids = {key_id for row in KEYBOARD_ROWS for key_id, _ in row}
+    assert "WIN" in key_ids
+    assert "ALT" in key_ids
+    assert PetWindow._key_to_keyboard_key(None, "key.cmd") == "WIN"
+    assert PetWindow._key_to_keyboard_key(None, "key.alt") == "ALT"
+    assert PetWindow._key_to_keyboard_key(None, "key.ctrl_l") == "CTRL"
+    print("✅ Windows 键盘映射测试通过\n")
+
+
 def main():
     print("桌宠核心功能测试\n")
     
     test_config()
     test_animation_frames()
     test_state_machine_logic()
+    test_windows_keyboard_layout()
     
     print("=" * 30)
     print("测试完成！")

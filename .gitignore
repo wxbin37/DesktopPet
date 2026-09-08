@@ -8,6 +8,8 @@ env/
 build/
 dist/
 *.dmg
+*.exe
+*.msi
 *.zip
 *.log
 art/*_key.png

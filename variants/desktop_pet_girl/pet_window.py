@@ -23,6 +23,10 @@ from config import (
 )
 
 
+IS_MAC = platform.system() == "Darwin"
+IS_WINDOWS = platform.system() == "Windows"
+
+
 MAC_KEYCODE_TO_KEY_ID = {
     0: "A", 1: "S", 2: "D", 3: "F", 4: "H", 5: "G", 6: "Z", 7: "X",
     8: "C", 9: "V", 11: "B", 12: "Q", 13: "W", 14: "E", 15: "R",
@@ -49,8 +53,15 @@ KEYBOARD_ROWS = [
      ("ENTER", 1.9)],
     [("SHIFT", 2.15), ("Z", 1.0), ("X", 1.0), ("C", 1.0), ("V", 1.0), ("B", 1.0),
      ("N", 1.0), ("M", 1.0), (",", 1.0), (".", 1.0), ("/", 1.0), ("SHIFT_R", 2.25)],
-    [("CTRL", 1.25), ("OPT", 1.25), ("CMD", 1.35), ("SPACE", 5.7), ("CMD_R", 1.35),
-     ("OPT_R", 1.25), ("LEFT", 1.0), ("DOWN", 1.0), ("UP", 1.0), ("RIGHT", 1.0)],
+    (
+        [("CTRL", 1.25), ("WIN", 1.25), ("ALT", 1.35), ("SPACE", 5.7),
+         ("ALT_R", 1.35), ("WIN_R", 1.25), ("LEFT", 1.0), ("DOWN", 1.0),
+         ("UP", 1.0), ("RIGHT", 1.0)]
+        if IS_WINDOWS
+        else [("CTRL", 1.25), ("OPT", 1.25), ("CMD", 1.35), ("SPACE", 5.7),
+              ("CMD_R", 1.35), ("OPT_R", 1.25), ("LEFT", 1.0), ("DOWN", 1.0),
+              ("UP", 1.0), ("RIGHT", 1.0)]
+    ),
 ]
 
 KEY_DISPLAY_LABELS = {
@@ -65,8 +76,12 @@ KEY_DISPLAY_LABELS = {
     "CMD_R": "⌘",
     "OPT": "⌥",
     "OPT_R": "⌥",
-    "CTRL": "⌃",
-    "CTRL_R": "⌃",
+    "CTRL": "Ctrl" if IS_WINDOWS else "⌃",
+    "CTRL_R": "Ctrl" if IS_WINDOWS else "⌃",
+    "WIN": "Win",
+    "WIN_R": "Win",
+    "ALT": "Alt",
+    "ALT_R": "Alt",
     "SPACE": "space",
     "LEFT": "←",
     "RIGHT": "→",
@@ -199,7 +214,10 @@ class PetWindow(QWidget):
                     self.keyboard_available = False
             except Exception as e:
                 print(f"键盘监听初始化失败: {e}")
-                print("提示: macOS 需要在 系统设置 > 隐私与安全性 > 输入监控 中授权应用")
+                if IS_MAC:
+                    print("提示: macOS 需要在 系统设置 > 隐私与安全性 > 输入监控 中授权应用")
+                else:
+                    print("提示: 请检查安全软件是否阻止了桌宠的全局键盘监听")
                 self.keyboard_status = f"键盘监听初始化失败: {e}"
                 self.keyboard_available = False
         else:
@@ -213,7 +231,7 @@ class PetWindow(QWidget):
         # 走路边界检测
         self.screen_geometry = screen
 
-        # macOS 上额外设置一次窗口层级，避免切换到其他页面后被盖住。
+        # 使用当前系统的原生方式再设置一次窗口层级。
         # 不能反复 raise 窗口，否则会打断中文输入法候选框。
         QTimer.singleShot(0, self._ensure_topmost)
         QTimer.singleShot(500, self._ensure_topmost)
@@ -239,9 +257,10 @@ class PetWindow(QWidget):
         reset_action.triggered.connect(self._reset_position)
         tray_menu.addAction(reset_action)
 
-        permission_action = QAction("打开输入监控设置", self)
-        permission_action.triggered.connect(self._open_input_monitoring_settings)
-        tray_menu.addAction(permission_action)
+        if IS_MAC:
+            permission_action = QAction("打开输入监控设置", self)
+            permission_action.triggered.connect(self._open_input_monitoring_settings)
+            tray_menu.addAction(permission_action)
 
         test_bongo_action = QAction("测试真实键位动画", self)
         test_bongo_action.triggered.connect(self._test_bongo_tap)
@@ -446,13 +465,18 @@ class PetWindow(QWidget):
             "key.delete": "DEL",
             "key.esc": "ESC",
             "key.shift": "SHIFT",
+            "key.shift_l": "SHIFT",
             "key.shift_r": "SHIFT_R",
             "key.ctrl": "CTRL",
+            "key.ctrl_l": "CTRL",
             "key.ctrl_r": "CTRL_R",
-            "key.alt": "OPT",
-            "key.alt_r": "OPT_R",
-            "key.cmd": "CMD",
-            "key.cmd_r": "CMD_R",
+            "key.alt": "ALT" if IS_WINDOWS else "OPT",
+            "key.alt_l": "ALT" if IS_WINDOWS else "OPT",
+            "key.alt_r": "ALT_R" if IS_WINDOWS else "OPT_R",
+            "key.cmd": "WIN" if IS_WINDOWS else "CMD",
+            "key.cmd_l": "WIN" if IS_WINDOWS else "CMD",
+            "key.cmd_r": "WIN_R" if IS_WINDOWS else "CMD_R",
+            "key.caps_lock": "CAPS",
             "key.left": "LEFT",
             "key.right": "RIGHT",
             "key.up": "UP",
@@ -914,9 +938,10 @@ class PetWindow(QWidget):
         reset_action.triggered.connect(self._reset_position)
         menu.addAction(reset_action)
 
-        permission_action = QAction("打开输入监控设置", self)
-        permission_action.triggered.connect(self._open_input_monitoring_settings)
-        menu.addAction(permission_action)
+        if IS_MAC:
+            permission_action = QAction("打开输入监控设置", self)
+            permission_action.triggered.connect(self._open_input_monitoring_settings)
+            menu.addAction(permission_action)
 
         test_bongo_action = QAction("测试真实键位动画", self)
         test_bongo_action.triggered.connect(self._test_bongo_tap)
@@ -950,10 +975,11 @@ class PetWindow(QWidget):
         self.home_position = QPoint(self.x(), self.y())
 
     def _open_input_monitoring_settings(self):
-        """打开 macOS 输入监控权限页面。"""
-        QDesktopServices.openUrl(
-            QUrl("x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent")
-        )
+        """打开 macOS 输入监控权限页面。Windows 无需此权限。"""
+        if IS_MAC:
+            QDesktopServices.openUrl(
+                QUrl("x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent")
+            )
 
     def _test_bongo_tap(self):
         """手动测试 BongoCat 风格敲键盘动画。"""
