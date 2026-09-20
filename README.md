@@ -6,14 +6,17 @@
 
 ## 当前版本
 
-仓库里包含两个角色版本：
+仓库里包含三个角色版本：
 
 | 位置 | 说明 | App 名称 |
 | --- | --- | --- |
 | 根目录 | 默认男生版桌宠 | `DesktopPet.app` |
 | `variants/desktop_pet_girl/` | 独立女生版桌宠 | `DesktopPetGirl.app` |
+| `variants/desktop_pet_lulu/` | 独立噜噜版，圆润 3D 角色与 8 帧走路 | `DesktopPetLulu.app` |
 
-两个版本的功能一致，只是角色素材、应用名和 bundle id 不同。之后如果要做猫咪、女仆、像素风、赛博风等新角色，可以复制一个变体目录再替换素材。
+噜噜版使用和构建说明见 [variants/desktop_pet_lulu/README.md](variants/desktop_pet_lulu/README.md)，独立构建工作流为 `build-lulu.yml`。其自拍状态默认关闭，macOS 包面向 Apple Silicon，Windows 包面向 x64。
+
+男生版和女生版的功能一致，只是角色素材、应用名和 bundle id 不同。之后如果要做猫咪、女仆、像素风、赛博风等新角色，可以复制一个变体目录再替换素材。
 
 ## 功能特性
 

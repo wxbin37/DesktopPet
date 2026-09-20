@@ -1,0 +1,39 @@
+Built-in image_gen, approved Lulu v2 reference.
+
+FULLBODY SHEET
+Use case: stylized-concept. Production animation asset for a desktop pet. Create exactly ONE transparent PNG sprite sheet, 4 equal columns x 3 equal rows, containing 12 whole-body poses of the SAME Lulu mascot from reference 1. Reference 1 is the approved round plump front-view identity; reference 2 is the approved walking identity. Same squat chubby proportions, huge orange muzzle and small smile, yellow round body with pale yellow belly, orange bottom and short feet, two small yellow ears, glossy blue-gray rimmed eyes, small mandarin with green stem on head. Keep same soft high-quality 3D cartoon style and consistent body volume. No clothing.
+
+Every pose must fit completely in its own equal-sized grid cell, with clear transparent padding at all four sides. True transparent alpha. No outlines, floor shadows, reflections, checkerboard, frames, labels, words or watermarks. No detached noise. Exactly one mascot in each cell, two arms two legs, no extra limbs.
+
+ROW 1, left to right:
+1 idle_stand: neutral front view natural stand, arms relaxed.
+2 idle_blink: IDENTICAL neutral front view and pose to cell 1, only eyes gently closed.
+3 happy: relaxed delighted closed-eye smile, arms loosely touching tummy, feet grounded, no huge jumping.
+4 surprised: eyes a little wider, tiny round mouth, hands slightly away from sides at waist, mild surprise, no raised hands or symbols.
+ROW 2:
+5 walk_a: same approved chubby mascot facing right, one short leg forward.
+6 walk_b: same right-facing mascot opposite leg forward.
+7 typing_a: front view upper body leaning toward an imaginary desk, BOTH yellow paws extended forward at waist, character's LEFT paw is on viewer RIGHT; no actual desk or keyboard.
+8 typing_b: exactly same leaning pose as cell 7, only viewer-right paw lowered a little to tap, no desk or keyboard.
+ROW 3:
+9 sleeping: lying curled on side with eyes closed, mandarin still attached, paws tucked, full body with feet visible, no floating Z symbols or cushions.
+10 wakeup: seated on orange feet, sleepy half-open eyes, one paw gently rubbing eye.
+11 dragging: suspended upright as if gently picked up, both arms relaxed outward and both short feet dangling, small surprised expression, no rope or grabber.
+12 selfie: neutral front view holding a small smartphone with plain dark screen near chest; screen entirely blank, no photo, no other character.
+
+Preserve a single recognizable character across all twelve cells, same head accessory and colors. This is a spritesheet, not a poster. Landscape 4:3 layout.
+
+TYPING SHEET
+Create a two-frame typing animation sprite sheet: exactly TWO equal panels side by side, total aspect ratio 2.84:1 (each panel 1.42:1). True transparent alpha background outside subject and desk. Use the approved Lulu reference as exact character identity: round chubby yellow mascot, enormous orange muzzle, glossy blue-gray rim eyes, tiny yellow ears, orange mandarin with green stem on crown. Soft 3D cartoon. NO added costumes.
+
+Both panels show IDENTICAL front-view Lulu leaning forward behind a low minimalist pale cream desktop, like BongoCat. Layout within EACH panel:
+Mandarin top at y=8%, face centered x=46%, large head from x=21% to x=72%, head bottom at y=57%. Lower torso concealed behind desk.
+Desk is a simple cream rounded slab from x=4% to x=96%, y=61% to y=94%, no legs, transparent outside. Nothing drawn on desk: NO keyboard, NO keys, NO laptop, NO mouse, NO letters.
+Character's right paw (viewer LEFT) rests near x=25%, y=69%. Character's LEFT arm and paw (viewer RIGHT) extends naturally from shoulder x=68%, y=51% onto desk at x=67%, y=71%; short connected yellow forearm, mitten-like paw, not detached.
+LEFT PANEL: left paw slightly raised ready to tap, lowest part near y=71%.
+RIGHT PANEL: ONLY character's LEFT forearm/paw (viewer RIGHT) lowers a small amount, landing y=76%; pivot naturally at same shoulder. EVERYTHING ELSE must be pixel-identical in position and shape: head, eyes, expression, mandarin, body, other arm, desk edges. No facial expression change, no head shift, no desk movement.
+The empty right two-thirds of desk is reserved for a REAL keyboard to be drawn later by program. Left paw will be composited over that keyboard.
+Clean connected anatomy; one head, two arms, no feet visible behind desk. No shadows outside silhouette, no backdrop, no separator, no text, no watermarks, no edge speckles.
+
+DRAGGING REPLACEMENT
+Create one full-body animation pose of this EXACT approved Lulu mascot. Same short round chubby yellow body, huge orange muzzle, eyes, tiny ears, head mandarin with green stem, pale belly, orange feet, soft 3D finish. Dragging/suspended pose: upright floating as if gently lifted, both arms relaxed a little outward, both short legs dangling with soles subtly visible, mildly surprised small o-shaped mouth. Exactly two arms and two legs connected naturally. Do not elongate the body. Entire mandarin including stem and both ears, hands and feet completely visible. Generous 18% true transparent margins all around. Clean transparent alpha PNG. No rope, hook, grabber, shadow, floor, backdrop, words or extra objects. One single mascot only.

@@ -1,0 +1,7 @@
+PyQt6>=6.4.0
+Pillow>=9.0.0
+
+# 可选：Windows/Linux 全局键盘监听
+# pynput>=1.7.0
+
+# macOS 不需要额外依赖，使用原生 Quartz 框架

@@ -1,0 +1,80 @@
+name: Build DesktopPetLulu
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'variants/desktop_pet_lulu/**'
+      - '.github/workflows/build-lulu.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: variants/desktop_pet_lulu
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: x64
+          cache: pip
+          cache-dependency-path: requirements-windows.txt
+      - name: Install existing project dependencies
+        run: python -m pip install -r ../../requirements-windows.txt
+      - name: Test assets, interaction and Windows keyboard backend
+        run: |
+          $env:QT_QPA_PLATFORM = 'offscreen'
+          python test_core.py
+          if ($LASTEXITCODE -ne 0) { throw 'Core tests failed' }
+          python test_lulu.py
+          if ($LASTEXITCODE -ne 0) { throw 'Lulu regression tests failed' }
+          python -c "from keyboard_monitor import KeyboardMonitor; print('Windows keyboard import OK')"
+          if ($LASTEXITCODE -ne 0) { throw 'Keyboard import failed' }
+      - name: Build Windows x64 executable
+        run: python -m PyInstaller --noconfirm --clean DesktopPet.Windows.spec
+      - name: Test packaged executable and package for sharing
+        run: |
+          $env:QT_QPA_PLATFORM = 'offscreen'
+          $process = Start-Process -FilePath 'dist/DesktopPetLulu.exe' -ArgumentList '--smoke-test-ms=2200' -PassThru
+          if (-not $process.WaitForExit(30000)) {
+            $process.Kill()
+            throw 'Packaged smoke test timed out'
+          }
+          if ($process.ExitCode -ne 0) { throw "Packaged smoke test failed: $($process.ExitCode)" }
+          New-Item -ItemType Directory -Force -Path package/share | Out-Null
+          Copy-Item dist/DesktopPetLulu.exe package/DesktopPetLulu-Windows-x64.exe
+          Copy-Item dist/DesktopPetLulu.exe package/share/DesktopPetLulu.exe
+          Copy-Item README.md package/share/使用说明.md
+          Compress-Archive -Path package/share/* -DestinationPath package/DesktopPetLulu-Windows-x64.zip
+          $checksums = foreach ($file in Get-ChildItem package/*.exe,package/*.zip) {
+            "$((Get-FileHash -Algorithm SHA256 $file.FullName).Hash.ToLower())  $($file.Name)"
+          }
+          $checksums | Set-Content -Encoding utf8 package/SHA256SUMS-Windows.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DesktopPetLulu-Windows-x64
+          path: |
+            variants/desktop_pet_lulu/package/*.exe
+            variants/desktop_pet_lulu/package/*.zip
+            variants/desktop_pet_lulu/package/SHA256SUMS-Windows.txt
+          if-no-files-found: error
+      - name: Prepare release draft for both platforms
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "lulu-build-${{ github.run_number }}" `
+            package/DesktopPetLulu-Windows-x64.exe `
+            package/DesktopPetLulu-Windows-x64.zip `
+            package/SHA256SUMS-Windows.txt `
+            --target '${{ github.sha }}' `
+            --title 'DesktopPetLulu 1.0.0 · 噜噜桌宠' `
+            --notes-file README.md `
+            --draft

@@ -1,0 +1,7 @@
+.venv/
+build/
+dist/
+package/
+__pycache__/
+art/lulu-candidate-*.png
+assets/walking/
