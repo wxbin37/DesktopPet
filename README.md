@@ -175,6 +175,8 @@ cp -R variants/desktop_pet_girl variants/desktop_pet_new_style
 
 - 角色素材模板：[docs/CHARACTER_TEMPLATE.md](docs/CHARACTER_TEMPLATE.md)
 - 开发与打包说明：[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
+- 新角色制作与功能修改交接模板：[docs/NEW_CHARACTER_PROJECT_TEMPLATE.md](docs/NEW_CHARACTER_PROJECT_TEMPLATE.md)
+- 可直接粘贴到新会话的 Prompt：[docs/PROMPT_NEW_CHARACTER.md](docs/PROMPT_NEW_CHARACTER.md)
 
 ## 不提交到 Git 的内容
 
