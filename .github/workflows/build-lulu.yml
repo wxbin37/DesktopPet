@@ -15,6 +15,8 @@ jobs:
   windows:
     runs-on: windows-latest
     timeout-minutes: 30
+    env:
+      PYTHONUTF8: '1'
     defaults:
       run:
         working-directory: variants/desktop_pet_lulu
