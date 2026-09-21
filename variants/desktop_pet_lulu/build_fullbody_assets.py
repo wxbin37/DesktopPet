@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Build transparent full-body desktop pet frames from a 4x3 sprite sheet."""
 from pathlib import Path
+from statistics import median
 
 from PIL import Image
 
@@ -282,6 +283,36 @@ def clear_state_dir(path):
         frame.unlink()
 
 
+def walking_head_center(frame):
+    """Lulu's wide head is a stable anchor; swinging limbs are not."""
+    alpha = frame.getchannel("A")
+    _, top, _, bottom = alpha.getbbox()
+    height = bottom - top
+    centers = []
+    for y in range(top + round(height * .25), top + round(height * .55)):
+        row = alpha.crop((0, y, frame.width, y + 1)).point(lambda a: 255 if a >= 128 else 0)
+        box = row.getbbox()
+        if box:
+            centers.append((box[0] + box[2] - 1) / 2)
+    return median(centers)
+
+
+def align_walking_heads(frames):
+    """Translate only: preserve all eight poses, scale and foot baselines."""
+    centers = [walking_head_center(frame) for frame in frames]
+    target = median(centers)
+    aligned = []
+    for frame, center in zip(frames, centers):
+        dx = round(target - center)
+        left, _, right, _ = frame.getchannel("A").getbbox()
+        if left + dx < 1 or right + dx >= frame.width:
+            raise ValueError("Walking head alignment would crop the sprite")
+        output = Image.new("RGBA", frame.size, (0, 0, 0, 0))
+        output.alpha_composite(frame, (dx, 0))
+        aligned.append(output)
+    return aligned
+
+
 def build_custom_walking_frames():
     """Load a real 8-frame walking cycle when a dedicated sheet is present."""
     if not WALKING_SHEET_PATH.exists():
@@ -303,7 +334,7 @@ def build_custom_walking_frames():
     tallest = max(frame.height for frame in raw_frames)
     shared_scale = min(max_w / widest, max_h / tallest)
 
-    return [
+    frames = [
         fit_to_frame(
             frame,
             clean_lower_artifacts=True,
@@ -312,6 +343,8 @@ def build_custom_walking_frames():
         )
         for frame in raw_frames
     ]
+    # Bounding-box centering shifts the head whenever a leg extends sideways.
+    return align_walking_heads(frames)
 
 
 def main():

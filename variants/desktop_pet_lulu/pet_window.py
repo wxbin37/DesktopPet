@@ -131,8 +131,8 @@ class PetWindow(QWidget):
 
         # 位置初始化（屏幕右下角）
         screen = QGuiApplication.primaryScreen().availableGeometry()
-        self.move(screen.width() - WINDOW_WIDTH - 50,
-                  screen.height() - WINDOW_HEIGHT - 50)
+        self.move(max(screen.left(), screen.right() + 1 - WINDOW_WIDTH - 50),
+                  max(screen.top(), screen.bottom() + 1 - WINDOW_HEIGHT - 50))
 
         # 拖拽相关
         self.dragging = False
@@ -234,9 +234,6 @@ class PetWindow(QWidget):
         # 系统托盘
         self._init_tray()
 
-        # 走路边界检测
-        self.screen_geometry = screen
-
         # 使用当前系统的原生方式再设置一次窗口层级。
         # 不能反复 raise 窗口，否则会打断中文输入法候选框。
         QTimer.singleShot(0, self._ensure_topmost)
@@ -322,6 +319,13 @@ class PetWindow(QWidget):
 
     def _on_state_changed(self, state):
         """状态改变回调"""
+        if state == PetState.WALKING:
+            left, right = self._walk_limits()
+            # 只在开始一次行走时选择朝向；到边界后休息，不来回弹跳。
+            if self.x() <= left:
+                self.state_machine.walk_direction = 1
+            elif self.x() >= right:
+                self.state_machine.walk_direction = -1
         self.animation.set_state(state)
         self._update_click_mask()
         self.update()
@@ -499,33 +503,39 @@ class PetWindow(QWidget):
         """左手只跟随每次 keydown 的敲击脉冲，不被长按键位粘住。"""
         self.left_hand_down = self.left_hand_tap_phase > 0
 
-    def _on_walk_step(self, direction):
-        """走路每一步"""
-        current_x = self.x()
-        new_x = current_x + direction * WALK_SPEED
-        direction_changed = False
+    def _available_screen_geometry(self):
+        """使用角色所在屏幕的全局坐标，支持外接屏和负坐标。"""
+        screen = (QGuiApplication.screenAt(self.frameGeometry().center())
+                  or self.screen() or QGuiApplication.primaryScreen())
+        return screen.availableGeometry()
 
-        # 只在当前停靠点附近小范围走动，避免工作时跑太远。
+    def _walk_limits(self):
+        screen = self._available_screen_geometry()
         margin = 10
-        left_limit = max(margin, self.home_position.x() - WALK_RANGE)
-        right_limit = min(
-            self.screen_geometry.width() - self.width() - margin,
-            self.home_position.x() + WALK_RANGE,
-        )
+        screen_left = screen.left() + margin
+        screen_right = screen.right() + 1 - self.width() - margin
+        if screen_right < screen_left:
+            screen_left = screen_right = screen.left()
+        # 拖到屏外或显示器布局变化后，先将停靠点移入有效范围。
+        home_x = min(max(self.home_position.x(), screen_left), screen_right)
+        self.home_position.setX(home_x)
+        return (max(screen_left, home_x - WALK_RANGE),
+                min(screen_right, home_x + WALK_RANGE))
 
-        if new_x < left_limit:
-            new_x = left_limit
-            self.state_machine.walk_direction = 1  # 转向
-            direction_changed = True
-        elif new_x > right_limit:
-            new_x = right_limit
-            self.state_machine.walk_direction = -1  # 转向
-            direction_changed = True
-
+    def _on_walk_step(self, direction):
+        """沿同一方向走到边界后停下，避免瞬间反向造成摇摆。"""
+        if self.dragging or self.state_machine.get_current_state() != PetState.WALKING:
+            return
+        left, right = self._walk_limits()
+        current_x = self.x()
+        if current_x < left or current_x > right:
+            self.move(min(max(current_x, left), right), self.y())
+            self.state_machine.request_state(PetState.IDLE, True)
+            return
+        new_x = min(max(current_x + direction * WALK_SPEED, left), right)
         self.move(new_x, self.y())
-        if direction_changed:
-            self._update_click_mask()
-            self.update()
+        if new_x == left or new_x == right:
+            self.state_machine.request_state(PetState.IDLE, True)
 
     def _get_display_frame(self):
         """获取用于点击区域计算的逻辑尺寸帧。实际绘制会使用高清源图。"""
@@ -974,8 +984,8 @@ class PetWindow(QWidget):
     def _reset_position(self):
         """重置位置到右下角"""
         screen = QGuiApplication.primaryScreen().availableGeometry()
-        self.move(screen.width() - self.width() - 50,
-                  screen.height() - self.height() - 50)
+        self.move(max(screen.left(), screen.right() + 1 - self.width() - 50),
+                  max(screen.top(), screen.bottom() + 1 - self.height() - 50))
         self.home_position = QPoint(self.x(), self.y())
 
     def _open_input_monitoring_settings(self):

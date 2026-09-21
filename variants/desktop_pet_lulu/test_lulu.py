@@ -2,12 +2,13 @@
 import hashlib
 from pathlib import Path
 import unittest
+from unittest.mock import patch, Mock
 from PIL import Image, ImageChops
-from PyQt6.QtCore import Qt, QPoint, QPointF, QEvent
-from PyQt6.QtGui import QMouseEvent, QTransform
+from PyQt6.QtCore import Qt, QPoint, QPointF, QRect, QEvent
+from PyQt6.QtGui import QMouseEvent, QTransform, QGuiApplication
 from PyQt6.QtTest import QTest
 from PyQt6.QtWidgets import QApplication
-from config import PetState, PET_STATES, DEFAULT_CHARACTER, WALK_RANGE, TYPING_TIMEOUT
+from config import PetState, PET_STATES, DEFAULT_CHARACTER, WALK_RANGE, WALK_SPEED, TYPING_TIMEOUT
 from pet_window import PetWindow
 
 ROOT = Path(__file__).resolve().parent
@@ -61,6 +62,86 @@ class LuluTests(unittest.TestCase):
         self.assertTrue(self.pet.testAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating))
         self.assertEqual(self.pet.focusPolicy(),Qt.FocusPolicy.NoFocus)
         self.assertFalse(self.pet.mask().contains(QPoint(0,0)))
+
+    def test_walk_head_stability_and_pose_preservation(self):
+        from build_fullbody_assets import (
+            walking_head_center, align_walking_heads, build_custom_walking_frames,
+        )
+        walk = [Image.open(p).convert('RGBA') for p in sorted(
+            (ROOT/'assets/blue_chibi/walking').glob('frame_*.png'))]
+        centers = [walking_head_center(frame) for frame in walk]
+        self.assertLessEqual(max(centers) - min(centers), 1.0)
+        # Rebuilding must preserve registration, and alignment must not distort
+        # any limb or introduce per-frame scale changes.
+        for stored, rebuilt in zip(walk, build_custom_walking_frames()):
+            self.assertEqual(stored.tobytes(), rebuilt.tobytes())
+        for before, after in zip(walk, align_walking_heads(walk)):
+            before_box = before.getchannel('A').getbbox()
+            after_box = after.getchannel('A').getbbox()
+            self.assertEqual(before_box[1::2], after_box[1::2])
+            self.assertEqual(before.crop(before_box).tobytes(), after.crop(after_box).tobytes())
+
+    def test_walk_stops_without_reversing_on_each_monitor(self):
+        p = self.pet
+        for screen in [QRect(0, 24, 1440, 876), QRect(1440, 0, 1920, 1080),
+                       QRect(-1920, -200, 1920, 1080)]:
+            for direction in [-1, 1]:
+                with self.subTest(screen=screen, direction=direction), patch.object(
+                    p, '_available_screen_geometry', return_value=screen
+                ):
+                    home = screen.left() + 400
+                    p.move(home, screen.top() + 250)
+                    p.home_position = p.pos()
+                    p.state_machine.request_state(PetState.WALKING, True)
+                    p.state_machine.stop()
+                    p.state_machine.walk_direction = direction
+                    positions = [p.x()]
+                    for _ in range(100):
+                        p._on_walk_step(direction)
+                        positions.append(p.x())
+                        self.assertEqual(p.state_machine.walk_direction, direction)
+                    deltas = [b-a for a, b in zip(positions, positions[1:])]
+                    self.assertTrue(all(0 <= d * direction <= WALK_SPEED for d in deltas))
+                    self.assertEqual(p.x(), home + direction * WALK_RANGE)
+                    self.assertEqual(p.state_machine.current_state, PetState.IDLE)
+                    self.assertFalse(p.state_machine.walk_step_timer.isActive())
+                    # A later walk at the boundary starts inward, once.
+                    p.state_machine.request_state(PetState.WALKING, True)
+                    p.state_machine.stop()
+                    self.assertEqual(p.state_machine.walk_direction, -direction)
+
+    def test_offscreen_home_and_small_screen_never_invert_bounds(self):
+        p = self.pet
+        for screen, home in [(QRect(0, 0, 1440, 900), 1300),
+                             (QRect(1440, 0, 1920, 1080), 3300),
+                             (QRect(-1920, 0, 1920, 1080), -2000),
+                             (QRect(50, 0, 200, 180), 180)]:
+            with self.subTest(screen=screen, home=home), patch.object(
+                p, '_available_screen_geometry', return_value=screen
+            ):
+                p.move(home, 0)
+                p.home_position = p.pos()
+                p.state_machine.request_state(PetState.WALKING, True)
+                p.state_machine.stop()
+                left, right = p._walk_limits()
+                self.assertLessEqual(left, right)
+                p._on_walk_step(p.state_machine.walk_direction)
+                stopped = p.x()
+                for _ in range(20):
+                    p._on_walk_step(p.state_machine.walk_direction)
+                    self.assertEqual(p.x(), stopped)
+                self.assertLessEqual(left, stopped)
+                self.assertLessEqual(stopped, right)
+                self.assertEqual(p.state_machine.current_state, PetState.IDLE)
+
+    def test_screen_geometry_refreshes_after_monitor_change(self):
+        screen = Mock()
+        geometries = [QRect(1440, 0, 1920, 1080), QRect(-1920, 24, 1920, 1056)]
+        with patch.object(QGuiApplication, 'screenAt', return_value=screen) as screen_at:
+            for geometry in geometries:
+                screen.availableGeometry.return_value = geometry
+                self.assertEqual(self.pet._available_screen_geometry(), geometry)
+                screen_at.assert_called_with(self.pet.frameGeometry().center())
 
     def test_walk_orientation_and_masks_change_on_frame(self):
         p=self.pet
