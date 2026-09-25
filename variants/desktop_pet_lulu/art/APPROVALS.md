@@ -15,3 +15,5 @@
 - User follow-up: add the bucket-hat and crossbody-pouch pose from the new photo, and remove the old third action (pullups). The replacement is a four-pose generated action using the approved Lulu identity. The original private photos remain outside the repository and package.
 
 - User clarified the second new screenshot shows Lulu standing with feet on separate exercise pedals while holding side handles. Added a separate supported-stepping action; the previously generated hanging candidate was discarded. The old pull-up action remains removed.
+
+- User follow-up: make supported stepping match the screenshot's side-facing body angle. Replaced all four frontal source poses with three-quarter left-facing Lulu drawings while preserving the two pedal contacts and side grips.
