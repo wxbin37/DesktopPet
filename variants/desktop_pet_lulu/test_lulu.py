@@ -276,6 +276,16 @@ class LuluTests(unittest.TestCase):
             for box in [(20, 110, 55, 310), (275, 110, 300, 310)]:
                 self.assertEqual(frame.crop(box).tobytes(), frames[0].crop(box).tobytes())
 
+    def test_looking_up_feet_stay_planted(self):
+        frames = [Image.open(p).convert('RGBA') for p in sorted(
+            (ROOT/'assets/blue_chibi/looking_up').glob('frame_*.png'))]
+        centers = []
+        for frame in frames:
+            box = frame.getchannel('A').crop((0, 285, 320, 307)).getbbox()
+            self.assertIsNotNone(box)
+            centers.append((box[0] + box[2]) / 2)
+        self.assertLessEqual(max(centers) - min(centers), 1)
+
     def test_typing_and_dragging_cancel_reference_actions(self):
         machine = self.pet.state_machine
         for state in REFERENCE_ACTIONS:
@@ -292,10 +302,11 @@ class LuluTests(unittest.TestCase):
                     machine.release_state(interrupt)
                     self.assertEqual(machine.current_state, PetState.IDLE)
 
-    def test_reference_menus_offer_and_trigger_all_six_actions(self):
+    def test_reference_actions_share_the_state_menu(self):
         def check_menu(parent):
-            menu = next(a.menu() for a in parent.actions() if a.text() == '参考图动作')
-            actions = menu.actions()
+            self.assertNotIn('参考图动作', {a.text() for a in parent.actions()})
+            menu = next(a.menu() for a in parent.actions() if a.text() == '切换状态')
+            actions = [a for a in menu.actions() if a.data() in REFERENCE_ACTIONS]
             self.assertEqual({a.data() for a in actions}, set(REFERENCE_ACTIONS))
             for action in actions:
                 action.trigger()

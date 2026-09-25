@@ -71,7 +71,7 @@ REFERENCE_ACTIONS = {
                         "frame_ms": 200, "sequence": (0, 1, 2, 3, 1, 0)},
     PetState.PULLUPS: {"label": "单杠锻炼", "reference": 3, "duration_ms": 4800,
                       "frame_ms": 300, "sequence": (0, 1, 2, 2, 3, 1, 0, 0)},
-    PetState.LOAF: {"label": "软团趴趴", "reference": 4, "duration_ms": 4800,
+    PetState.LOAF: {"label": "软软趴趴", "reference": 4, "duration_ms": 4800,
                    "frame_ms": 400, "sequence": (0, 0, 1, 2, 1, 3, 0, 0)},
     PetState.LOOKING_UP: {"label": "抬头张望", "reference": 5, "duration_ms": 4000,
                          "frame_ms": 400, "sequence": (0, 1, 1, 2, 2, 3, 0)},

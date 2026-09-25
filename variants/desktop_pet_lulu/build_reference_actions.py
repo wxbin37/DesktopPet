@@ -17,6 +17,28 @@ from enhance_ui_assets import resize_square_frame
 ROOT = Path(__file__).resolve().parent
 
 
+def anchor_looking_up_feet(frames):
+    """Keep the planted lower body fixed while eyes, head and paws explore."""
+    centers = []
+    for frame in frames:
+        feet = frame.getchannel("A").crop((0, 285, 320, 307))
+        box = feet.getbbox()
+        if not box:
+            raise ValueError("Missing planted feet in looking-up frame")
+        centers.append((box[0] + box[2]) / 2)
+    target = median(centers)
+    result = []
+    for frame, center in zip(frames, centers):
+        dx = round(target - center)
+        left, _, right, _ = frame.getchannel("A").getbbox()
+        if left + dx <= 0 or right + dx >= frame.width:
+            raise ValueError("Foot alignment would crop the character")
+        aligned = Image.new("RGBA", frame.size, (0, 0, 0, 0))
+        aligned.alpha_composite(frame, (dx, 0))
+        result.append(aligned)
+    return result
+
+
 def register_pullup_bar(frames):
     """Reuse the generated bar layer so AI sheet registration cannot move it.
 
@@ -103,8 +125,10 @@ def build_action(state):
         # grounded while the character moves inside it as the elbows bend.
         frame.alpha_composite(sprite, ((320-sprite.width)//2, 306-sprite.height))
         frames.append(frame)
-    if state in {"shy", "laughing", "looking_up"}:
+    if state in {"shy", "laughing"}:
         frames = align_walking_heads(frames)
+    elif state == "looking_up":
+        frames = anchor_looking_up_feet(frames)
     elif state == "pullups":
         frames = register_pullup_bar(frames)
     low = ROOT / "assets" / "blue_chibi" / state

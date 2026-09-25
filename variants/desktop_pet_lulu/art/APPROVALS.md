@@ -9,3 +9,5 @@
 - 2026-09-21 walking fix requested by user: preserve approved pose sheet and all limb shapes; register output frames horizontally to the head, without per-frame scale changes. Runtime stops at boundaries instead of bouncing.
 
 - 2026-09-25: user explicitly requested additional actions derived from all six uploaded reference pictures, beyond the original repository states. Added clasping/rubbing hands, laughing, pullups, belly-down loaf, upward gaze and tongue-out animations using the previously approved character. No replacement character or walking cycle was generated.
+
+- User follow-up: place all six new actions directly under the existing state menu and refine the loaf/upward-gaze artwork. Both generated sheets were redrawn from the approved Lulu identity; other actions and the approved walking cycle were retained.

@@ -308,7 +308,7 @@ class PetWindow(QWidget):
         state_menu.addAction(selfie_action)
         selfie_action.setVisible(SELFIE_ENABLED)
 
-        self._add_reference_action_menu(tray_menu)
+        self._add_reference_state_actions(state_menu)
 
         tray_menu.addSeparator()
 
@@ -320,15 +320,14 @@ class PetWindow(QWidget):
         self.tray_icon.setToolTip("噜噜 · DesktopPetLulu")
         self.tray_icon.show()
 
-    def _add_reference_action_menu(self, parent_menu):
-        menu = parent_menu.addMenu("参考图动作")
+    def _add_reference_state_actions(self, state_menu):
+        state_menu.addSeparator()
         for state, spec in REFERENCE_ACTIONS.items():
-            action = menu.addAction(spec["label"])
+            action = state_menu.addAction(spec["label"])
             action.setData(state)
             action.triggered.connect(
                 lambda checked=False, selected=state: self.state_machine.request_state(selected, True)
             )
-        return menu
 
     def _on_state_changed(self, state):
         """状态改变回调"""
@@ -953,7 +952,7 @@ class PetWindow(QWidget):
         state_menu.addAction(selfie_action)
         selfie_action.setVisible(SELFIE_ENABLED)
 
-        self._add_reference_action_menu(menu)
+        self._add_reference_state_actions(state_menu)
 
         menu.addSeparator()
 
