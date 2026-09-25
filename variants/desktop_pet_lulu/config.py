@@ -57,7 +57,7 @@ class PetState:
     SELFIE = "selfie"
     SHY = "shy"
     LAUGHING = "laughing"
-    PULLUPS = "pullups"
+    HAT_OUTING = "hat_outing"
     LOAF = "loaf"
     LOOKING_UP = "looking_up"
     TONGUE = "tongue"
@@ -69,8 +69,8 @@ REFERENCE_ACTIONS = {
                    "frame_ms": 260, "sequence": (0, 1, 2, 1, 3, 0)},
     PetState.LAUGHING: {"label": "张嘴大笑", "reference": 2, "duration_ms": 3000,
                         "frame_ms": 200, "sequence": (0, 1, 2, 3, 1, 0)},
-    PetState.PULLUPS: {"label": "单杠锻炼", "reference": 3, "duration_ms": 4800,
-                      "frame_ms": 300, "sequence": (0, 1, 2, 2, 3, 1, 0, 0)},
+    PetState.HAT_OUTING: {"label": "戴帽出游", "reference": 7, "duration_ms": 4000,
+                          "frame_ms": 320, "sequence": (0, 1, 1, 2, 3, 0)},
     PetState.LOAF: {"label": "软软趴趴", "reference": 4, "duration_ms": 4800,
                    "frame_ms": 400, "sequence": (0, 0, 1, 2, 1, 3, 0, 0)},
     PetState.LOOKING_UP: {"label": "抬头张望", "reference": 5, "duration_ms": 4000,
@@ -115,7 +115,7 @@ STATE_TRANSITION = {
         PetState.SLEEPING: 0.06,
         PetState.SHY: 0.08,
         PetState.LAUGHING: 0.06,
-        PetState.PULLUPS: 0.06,
+        PetState.HAT_OUTING: 0.06,
         PetState.LOAF: 0.06,
         PetState.LOOKING_UP: 0.06,
         PetState.TONGUE: 0.06,

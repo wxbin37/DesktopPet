@@ -11,3 +11,5 @@
 - 2026-09-25: user explicitly requested additional actions derived from all six uploaded reference pictures, beyond the original repository states. Added clasping/rubbing hands, laughing, pullups, belly-down loaf, upward gaze and tongue-out animations using the previously approved character. No replacement character or walking cycle was generated.
 
 - User follow-up: place all six new actions directly under the existing state menu and refine the loaf/upward-gaze artwork. Both generated sheets were redrawn from the approved Lulu identity; other actions and the approved walking cycle were retained.
+
+- User follow-up: add the bucket-hat and crossbody-pouch pose from the new photo, and remove the old third action (pullups). The replacement is a four-pose generated action using the approved Lulu identity. The original private photos remain outside the repository and package.

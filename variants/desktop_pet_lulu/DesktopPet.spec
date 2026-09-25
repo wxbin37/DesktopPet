@@ -62,8 +62,8 @@ app = BUNDLE(
     info_plist={
         "CFBundleName": "DesktopPetLulu",
         "CFBundleDisplayName": "DesktopPetLulu",
-        "CFBundleShortVersionString": "1.1.1",
-        "CFBundleVersion": "1.1.1",
+        "CFBundleShortVersionString": "1.1.2",
+        "CFBundleVersion": "1.1.2",
         "LSUIElement": True,
         "NSInputMonitoringUsageDescription": "用于在你敲键盘时让桌宠播放打字动画。",
         "NSAccessibilityUsageDescription": "用于让桌宠保持在最前端并响应桌面互动。",

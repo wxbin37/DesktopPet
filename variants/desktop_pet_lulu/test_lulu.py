@@ -216,8 +216,13 @@ class LuluTests(unittest.TestCase):
         state_menu=next(a.menu() for a in actions if a.text()=='切换状态')
         self.assertFalse(next(a for a in state_menu.actions() if a.text()=='自拍').isVisible())
 
-    def test_six_reference_actions_have_independent_poses_and_autoplay(self):
-        self.assertEqual({s['reference'] for s in REFERENCE_ACTIONS.values()}, set(range(1, 7)))
+    def test_selected_actions_have_independent_poses_and_autoplay(self):
+        self.assertEqual({s['reference'] for s in REFERENCE_ACTIONS.values()}, {1, 2, 4, 5, 6, 7})
+        self.assertNotIn('pullups', REFERENCE_ACTIONS)
+        self.assertNotIn('pullups', PET_STATES)
+        self.assertNotIn('pullups', STATE_TRANSITION[PetState.IDLE])
+        for quality in ('blue_chibi', 'blue_chibi_hd'):
+            self.assertFalse((ROOT/'assets'/quality/'pullups').exists())
         all_hashes = set()
         for state, spec in REFERENCE_ACTIONS.items():
             with self.subTest(state=state):
@@ -255,26 +260,6 @@ class LuluTests(unittest.TestCase):
                 self.assertEqual(machine.current_state, PetState.IDLE)
                 self.assertEqual(self.pet.animation.frame_delay, int(1000/FPS))
                 self.assertFalse(machine.action_timer.isActive())
-
-    def test_pullup_bar_is_fixed_while_character_changes_pose(self):
-        frames = [Image.open(p).convert('RGBA') for p in sorted(
-            (ROOT/'assets/blue_chibi/pullups').glob('frame_*.png'))]
-        centers = []
-        for frame in frames:
-            counts = []
-            for y in range(frame.height):
-                count = 0
-                for x in range(60, 260):
-                    r, g, b, a = frame.getpixel((x, y))
-                    count += a > 100 and g > r * 1.15 and g > b * 1.15
-                counts.append(count)
-            rows = [y for y, count in enumerate(counts) if count >= max(counts) * .6]
-            centers.append((min(rows)+max(rows))/2)
-        self.assertLessEqual(max(centers)-min(centers), 1)
-        # Both posts below the grips use the same generated layer in every pose.
-        for frame in frames[1:]:
-            for box in [(20, 110, 55, 310), (275, 110, 300, 310)]:
-                self.assertEqual(frame.crop(box).tobytes(), frames[0].crop(box).tobytes())
 
     def test_looking_up_feet_stay_planted(self):
         frames = [Image.open(p).convert('RGBA') for p in sorted(

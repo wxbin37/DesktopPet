@@ -39,55 +39,8 @@ def anchor_looking_up_feet(frames):
     return result
 
 
-def register_pullup_bar(frames):
-    """Reuse the generated bar layer so AI sheet registration cannot move it.
-
-    Keep the separately drawn character pixels; translate them by their grip
-    anchor. No per-pose scaling or body deformation is used.
-    """
-    bars = []
-    characters = []
-    for frame in frames:
-        pixels = frame.load()
-        def green(x, y):
-            r, g, b, a = pixels[x, y]
-            return a > 0 and g > r * 1.12 and g > b * 1.12
-        counts = [sum(green(x, y) for x in range(60, 260)) for y in range(320)]
-        rows = [y for y, count in enumerate(counts) if count >= max(counts) * .6]
-        top, bottom = min(rows), max(rows)
-        center = round(median(rows))
-        prop = Image.new("RGBA", frame.size, (0, 0, 0, 0))
-        character = frame.copy()
-        for y in range(320):
-            for x in range(320):
-                if (x < 65 or x > 255 or
-                        (green(x, y) and (x < 75 or x > 245 or abs(y-center) <= 16))):
-                    prop.putpixel((x, y), pixels[x, y])
-                    character.putpixel((x, y), (0, 0, 0, 0))
-        bars.append((prop, top, bottom, center))
-        characters.append(character)
-    fixed_bar, top, bottom, target = bars[0]
-    # The first drawing's gripping fingers occlude short spans of the bar.
-    # Extend its own horizontal material underneath the moving hand layer.
-    for y in range(top, bottom + 1):
-        sample = fixed_bar.getpixel((160, y))
-        if sample[3] > 0:
-            for x in range(42, 278):
-                if fixed_bar.getpixel((x, y))[3] == 0:
-                    fixed_bar.putpixel((x, y), sample)
-    aligned = []
-    for character, (_, _, _, center) in zip(characters, bars):
-        dy = target - center
-        if character.getchannel("A").getbbox()[1] + dy <= 0:
-            raise ValueError("Pullup registration would crop the fruit")
-        output = fixed_bar.copy()
-        output.alpha_composite(character, (0, dy))
-        aligned.append(output)
-    return aligned
-
-
 def clean_cell(cell):
-    """Preserve substantial disconnected parts (fruit/bar), discard edge flecks."""
+    """Preserve substantial disconnected parts, discard edge flecks."""
     cell = cell.convert("RGBA")
     components = alpha_components(cell, threshold=8)
     if not components:
@@ -121,16 +74,12 @@ def build_action(state):
         sprite = sprite.resize((round(sprite.width * scale), round(sprite.height * scale)),
                                Image.Resampling.LANCZOS)
         frame = Image.new("RGBA", (320, 320), (0, 0, 0, 0))
-        # For pullups the bar's base determines the bounding box: the bar stays
-        # grounded while the character moves inside it as the elbows bend.
         frame.alpha_composite(sprite, ((320-sprite.width)//2, 306-sprite.height))
         frames.append(frame)
     if state in {"shy", "laughing"}:
         frames = align_walking_heads(frames)
     elif state == "looking_up":
         frames = anchor_looking_up_feet(frames)
-    elif state == "pullups":
-        frames = register_pullup_bar(frames)
     low = ROOT / "assets" / "blue_chibi" / state
     high = ROOT / "assets" / "blue_chibi_hd" / state
     low.mkdir(parents=True, exist_ok=True)
