@@ -37,6 +37,12 @@
       "label": "戴帽出游",
       "uploaded_reference_number": 7,
       "prompt": "See HAT_OUTING_PROMPT.md for the exact production sprite-sheet prompt."
+    },
+    {
+      "state": "supported_stepper",
+      "label": "扶杆踏步",
+      "uploaded_reference_number": 8,
+      "prompt": "See SUPPORTED_STEPPER_PROMPT.md for the exact four-pose source prompt and user correction."
     }
   ],
   "corrections": {

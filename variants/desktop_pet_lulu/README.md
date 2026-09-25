@@ -1,4 +1,4 @@
-# 噜噜桌宠 · DesktopPetLulu 1.1.2
+# 噜噜桌宠 · DesktopPetLulu 1.1.3
 
 基于本仓库原有 DesktopPet 框架的独立角色，保留圆润黄色身体、橙色嘴部和头顶小橘子。原男生版和女生版不受影响。
 
@@ -8,6 +8,11 @@
 - Windows 10/11 64 位：双击 `DesktopPetLulu-Windows-x64.exe`。也可解压 ZIP，双击其中的 `DesktopPetLulu.exe`。
 - 分享给朋友：macOS 发送 DMG；Windows 发送 ZIP。无需安装 Python。
 - 当前使用本地临时签名，未进行 Apple 公证或 Windows 商业签名。系统首次运行可能显示来源提示。
+
+## 1.1.3 第二张参考图动作
+
+- 新增“扶杆踏步”：噜噜双手扶着公园器械的侧边把手，两只脚分别踩在踏板上，左右交替踏步。
+- 此动作来自用户第二张图片，和已移除的旧“单杠锻炼”不同：没有悬挂或向上拉动作。
 
 ## 1.1.2 动作调整
 
@@ -35,7 +40,7 @@
 
 闲置时会随机出现；右键噜噜或点击菜单栏/托盘图标，进入“切换状态”即可点播。动作播放完毕回到待机，开始打字或拖拽会立即打断。原有走路、睡觉、开心等动作继续保留。
 
-公开源素材为生成的 `art/reference_actions/*_sheet.png`，提示词保存在同目录的 `PROMPTS.json`、`REFINEMENT_1_1_1.md` 和 `HAT_OUTING_PROMPT.md`。用户上传的原图不包含在仓库或安装包内。
+公开源素材为生成的 `art/reference_actions/*_sheet.png`，提示词保存在同目录的 `PROMPTS.json`、`REFINEMENT_1_1_1.md`、`HAT_OUTING_PROMPT.md` 和 `SUPPORTED_STEPPER_PROMPT.md`。用户上传的原图不包含在仓库或安装包内。
 
 ## 1.0.1 走路修复
 

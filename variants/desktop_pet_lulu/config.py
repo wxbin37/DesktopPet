@@ -58,6 +58,7 @@ class PetState:
     SHY = "shy"
     LAUGHING = "laughing"
     HAT_OUTING = "hat_outing"
+    SUPPORTED_STEPPER = "supported_stepper"
     LOAF = "loaf"
     LOOKING_UP = "looking_up"
     TONGUE = "tongue"
@@ -71,6 +72,8 @@ REFERENCE_ACTIONS = {
                         "frame_ms": 200, "sequence": (0, 1, 2, 3, 1, 0)},
     PetState.HAT_OUTING: {"label": "戴帽出游", "reference": 7, "duration_ms": 4000,
                           "frame_ms": 320, "sequence": (0, 1, 1, 2, 3, 0)},
+    PetState.SUPPORTED_STEPPER: {"label": "扶杆踏步", "reference": 8, "duration_ms": 4000,
+                                 "frame_ms": 280, "sequence": (0, 1, 2, 3, 2, 0)},
     PetState.LOAF: {"label": "软软趴趴", "reference": 4, "duration_ms": 4800,
                    "frame_ms": 400, "sequence": (0, 0, 1, 2, 1, 3, 0, 0)},
     PetState.LOOKING_UP: {"label": "抬头张望", "reference": 5, "duration_ms": 4000,
@@ -109,13 +112,14 @@ STATE_PRIORITY = {
 # 状态切换概率
 STATE_TRANSITION = {
     PetState.IDLE: {
-        PetState.IDLE: 0.32,
+        PetState.IDLE: 0.26,
         PetState.WALKING: 0.18,
         PetState.HAPPY: 0.06,
         PetState.SLEEPING: 0.06,
         PetState.SHY: 0.08,
         PetState.LAUGHING: 0.06,
         PetState.HAT_OUTING: 0.06,
+        PetState.SUPPORTED_STEPPER: 0.06,
         PetState.LOAF: 0.06,
         PetState.LOOKING_UP: 0.06,
         PetState.TONGUE: 0.06,

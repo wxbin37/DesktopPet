@@ -217,7 +217,7 @@ class LuluTests(unittest.TestCase):
         self.assertFalse(next(a for a in state_menu.actions() if a.text()=='自拍').isVisible())
 
     def test_selected_actions_have_independent_poses_and_autoplay(self):
-        self.assertEqual({s['reference'] for s in REFERENCE_ACTIONS.values()}, {1, 2, 4, 5, 6, 7})
+        self.assertEqual({s['reference'] for s in REFERENCE_ACTIONS.values()}, {1, 2, 4, 5, 6, 7, 8})
         self.assertNotIn('pullups', REFERENCE_ACTIONS)
         self.assertNotIn('pullups', PET_STATES)
         self.assertNotIn('pullups', STATE_TRANSITION[PetState.IDLE])
@@ -270,6 +270,30 @@ class LuluTests(unittest.TestCase):
             self.assertIsNotNone(box)
             centers.append((box[0] + box[2]) / 2)
         self.assertLessEqual(max(centers) - min(centers), 1)
+
+    def test_supported_stepper_feet_contact_alternating_pedals(self):
+        frames = [Image.open(p).convert('RGBA') for p in sorted(
+            (ROOT/'assets/blue_chibi/supported_stepper').glob('frame_*.png'))]
+        self.assertEqual(len(frames), 4)
+        pedal_heights = []
+        for frame in frames:
+            heights = []
+            for left, right in ((105, 145), (175, 215)):
+                purple, orange = [], []
+                for y in range(240, 307):
+                    for x in range(left, right):
+                        red, green, blue, alpha = frame.getpixel((x, y))
+                        if alpha > 180 and blue > red * 1.08 and red > green * 1.12:
+                            purple.append(y)
+                        if alpha > 180 and red > green * 1.25 and green > blue * 1.2:
+                            orange.append(y)
+                self.assertTrue(purple and orange)
+                pedal_top, foot_bottom = min(purple), max(orange)
+                self.assertLessEqual(abs(pedal_top - foot_bottom), 10)
+                heights.append(pedal_top)
+            pedal_heights.append(heights)
+        self.assertLess(pedal_heights[1][0], pedal_heights[1][1])
+        self.assertGreater(pedal_heights[3][0], pedal_heights[3][1])
 
     def test_typing_and_dragging_cancel_reference_actions(self):
         machine = self.pet.state_machine
