@@ -7,8 +7,9 @@ from PIL import Image, ImageChops
 from PyQt6.QtCore import Qt, QPoint, QPointF, QRect, QEvent
 from PyQt6.QtGui import QMouseEvent, QTransform, QGuiApplication
 from PyQt6.QtTest import QTest
-from PyQt6.QtWidgets import QApplication
-from config import PetState, PET_STATES, DEFAULT_CHARACTER, WALK_RANGE, WALK_SPEED, TYPING_TIMEOUT
+from PyQt6.QtWidgets import QApplication, QMenu
+from config import (PetState, PET_STATES, DEFAULT_CHARACTER, WALK_RANGE, WALK_SPEED,
+                    TYPING_TIMEOUT, REFERENCE_ACTIONS, STATE_TRANSITION, FPS)
 from pet_window import PetWindow
 
 ROOT = Path(__file__).resolve().parent
@@ -214,6 +215,95 @@ class LuluTests(unittest.TestCase):
         actions=self.pet.tray_icon.contextMenu().actions()
         state_menu=next(a.menu() for a in actions if a.text()=='切换状态')
         self.assertFalse(next(a for a in state_menu.actions() if a.text()=='自拍').isVisible())
+
+    def test_six_reference_actions_have_independent_poses_and_autoplay(self):
+        self.assertEqual({s['reference'] for s in REFERENCE_ACTIONS.values()}, set(range(1, 7)))
+        all_hashes = set()
+        for state, spec in REFERENCE_ACTIONS.items():
+            with self.subTest(state=state):
+                self.assertGreater(STATE_TRANSITION[PetState.IDLE][state], 0)
+                for quality in ['blue_chibi', 'blue_chibi_hd']:
+                    files = sorted((ROOT/'assets'/quality/state).glob('frame_*.png'))
+                    self.assertEqual(len(files), 4)
+                    hashes = {hashlib.sha256(Image.open(f).tobytes()).digest() for f in files}
+                    self.assertEqual(len(hashes), 4)
+                    self.assertFalse(all_hashes & hashes)
+                    all_hashes.update(hashes)
+                with patch('state_machine.random.choices', return_value=[state]):
+                    self.pet.state_machine.request_state(PetState.IDLE, True)
+                    self.pet.state_machine._on_idle_timeout()
+                self.assertEqual(self.pet.state_machine.current_state, state)
+                self.assertEqual(self.pet.animation.current_state, state)
+                self.assertEqual(self.pet.animation.frame_delay, spec['frame_ms'])
+                self.assertEqual(self.pet.animation.frame_count, len(spec['sequence']))
+                self.assertEqual(self.pet.state_machine.action_timer.interval(), spec['duration_ms'])
+                self.assertTrue(self.pet.state_machine.action_timer.isActive())
+        self.assertAlmostEqual(sum(STATE_TRANSITION[PetState.IDLE].values()), 1)
+
+    def test_reference_actions_timeout_and_do_not_move_window(self):
+        machine = self.pet.state_machine
+        position = self.pet.pos()
+        for state in REFERENCE_ACTIONS:
+            with self.subTest(state=state):
+                machine.request_state(state, True)
+                for _ in range(16):
+                    self.pet.animation._next_frame()
+                    self.pet._on_walk_step(1)
+                    self.assertEqual(self.pet.pos(), position)
+                machine.action_timer.start(10)
+                QTest.qWait(30)
+                self.assertEqual(machine.current_state, PetState.IDLE)
+                self.assertEqual(self.pet.animation.frame_delay, int(1000/FPS))
+                self.assertFalse(machine.action_timer.isActive())
+
+    def test_pullup_bar_is_fixed_while_character_changes_pose(self):
+        frames = [Image.open(p).convert('RGBA') for p in sorted(
+            (ROOT/'assets/blue_chibi/pullups').glob('frame_*.png'))]
+        centers = []
+        for frame in frames:
+            counts = []
+            for y in range(frame.height):
+                count = 0
+                for x in range(60, 260):
+                    r, g, b, a = frame.getpixel((x, y))
+                    count += a > 100 and g > r * 1.15 and g > b * 1.15
+                counts.append(count)
+            rows = [y for y, count in enumerate(counts) if count >= max(counts) * .6]
+            centers.append((min(rows)+max(rows))/2)
+        self.assertLessEqual(max(centers)-min(centers), 1)
+        # Both posts below the grips use the same generated layer in every pose.
+        for frame in frames[1:]:
+            for box in [(20, 110, 55, 310), (275, 110, 300, 310)]:
+                self.assertEqual(frame.crop(box).tobytes(), frames[0].crop(box).tobytes())
+
+    def test_typing_and_dragging_cancel_reference_actions(self):
+        machine = self.pet.state_machine
+        for state in REFERENCE_ACTIONS:
+            for interrupt in [PetState.TYPING, PetState.DRAGGING]:
+                with self.subTest(state=state, interrupt=interrupt):
+                    machine.request_state(state, True)
+                    machine.action_timer.start(10)
+                    self.assertTrue(machine.request_state(interrupt))
+                    self.assertFalse(machine.action_timer.isActive())
+                    QTest.qWait(25)
+                    self.assertEqual(machine.current_state, interrupt)
+                    machine._on_action_timeout()
+                    self.assertEqual(machine.current_state, interrupt)
+                    machine.release_state(interrupt)
+                    self.assertEqual(machine.current_state, PetState.IDLE)
+
+    def test_reference_menus_offer_and_trigger_all_six_actions(self):
+        def check_menu(parent):
+            menu = next(a.menu() for a in parent.actions() if a.text() == '参考图动作')
+            actions = menu.actions()
+            self.assertEqual({a.data() for a in actions}, set(REFERENCE_ACTIONS))
+            for action in actions:
+                action.trigger()
+                self.assertEqual(self.pet.state_machine.current_state, action.data())
+                self.assertEqual(action.text(), REFERENCE_ACTIONS[action.data()]['label'])
+        check_menu(self.pet.tray_icon.contextMenu())
+        with patch.object(QMenu, 'exec', new=lambda menu, *args: check_menu(menu)):
+            self.pet._show_context_menu(QPoint(0, 0))
 
 
 if __name__ == '__main__':

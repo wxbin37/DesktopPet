@@ -4,7 +4,7 @@
 import os
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import QTimer
-from config import ASSETS_DIR, DEFAULT_CHARACTER, FPS, PET_STATES, PetState
+from config import ASSETS_DIR, DEFAULT_CHARACTER, FPS, PET_STATES, PetState, REFERENCE_ACTIONS
 
 
 class AnimationManager:
@@ -54,6 +54,11 @@ class AnimationManager:
             empty.fill()
             frames.append(empty)
 
+        if state in REFERENCE_ACTIONS:
+            sequence = REFERENCE_ACTIONS[state]["sequence"]
+            if len(frames) != 4:
+                raise ValueError(f"{state}: expected four independent reference-action poses")
+            frames = [frames[index] for index in sequence]
         self.animations[state] = frames
 
     def set_state(self, state):
@@ -65,6 +70,9 @@ class AnimationManager:
             self.current_state = state
             self.current_frame = 0
             self.frame_count = len(self.animations[state])
+            self.frame_delay = REFERENCE_ACTIONS.get(state, {}).get("frame_ms", int(1000 / FPS))
+            if self.timer.isActive():
+                self.timer.start(self.frame_delay)
             return True
         return False
 
@@ -103,5 +111,6 @@ class AnimationManager:
     def get_state_duration(self, state):
         """获取某状态动画的总时长(ms)"""
         if state in self.animations:
-            return len(self.animations[state]) * self.frame_delay
+            delay = REFERENCE_ACTIONS.get(state, {}).get("frame_ms", int(1000 / FPS))
+            return len(self.animations[state]) * delay
         return 1000

@@ -6,7 +6,8 @@ import time
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer
 from config import (
     PetState, STATE_PRIORITY, STATE_TRANSITION,
-    IDLE_INTERVAL, WALK_INTERVAL, WALK_STEP_INTERVAL, SLEEP_AFTER_IDLE, SELFIE_ENABLED
+    IDLE_INTERVAL, WALK_INTERVAL, WALK_STEP_INTERVAL, SLEEP_AFTER_IDLE, SELFIE_ENABLED,
+    REFERENCE_ACTIONS,
 )
 
 
@@ -29,6 +30,10 @@ class StateMachine(QObject):
         self.walk_timer = QTimer()
         self.walk_timer.setSingleShot(True)
         self.walk_timer.timeout.connect(self._on_walk_timeout)
+
+        self.action_timer = QTimer()
+        self.action_timer.setSingleShot(True)
+        self.action_timer.timeout.connect(self._on_action_timeout)
 
         self.sleep_timer = QTimer()
         self.sleep_timer.setSingleShot(True)
@@ -53,6 +58,7 @@ class StateMachine(QObject):
         self.walk_timer.stop()
         self.sleep_timer.stop()
         self.walk_step_timer.stop()
+        self.action_timer.stop()
 
     def request_state(self, state, priority_override=False):
         """
@@ -72,6 +78,10 @@ class StateMachine(QObject):
                 # 低优先级不能打断高优先级状态
                 return False
 
+        if state in REFERENCE_ACTIONS:
+            # 菜单选择或随机触发的新动作独立播放，结束后回到待机。
+            self.state_stack.clear()
+
         # 保存当前状态到栈（用于临时状态恢复）
         if state in [
             PetState.TYPING,
@@ -81,7 +91,9 @@ class StateMachine(QObject):
             PetState.SELFIE,
             PetState.DRAGGING,
         ]:
-            restore = PetState.IDLE if state == PetState.WAKEUP and self.current_state == PetState.SLEEPING else self.current_state
+            restore_idle = (self.current_state in REFERENCE_ACTIONS or
+                            (state == PetState.WAKEUP and self.current_state == PetState.SLEEPING))
+            restore = PetState.IDLE if restore_idle else self.current_state
             self.state_stack.append(restore)
 
         self._change_state(state)
@@ -120,6 +132,7 @@ class StateMachine(QObject):
         # 停止所有特定状态的计时器
         self.walk_timer.stop()
         self.walk_step_timer.stop()
+        self.action_timer.stop()
 
         if new_state == PetState.IDLE:
             self.idle_timer.start(IDLE_INTERVAL)
@@ -153,6 +166,14 @@ class StateMachine(QObject):
 
         elif new_state == PetState.SELFIE:
             QTimer.singleShot(2600, lambda: self._release_if_current(PetState.SELFIE))
+
+        elif new_state in REFERENCE_ACTIONS:
+            self.action_timer.start(REFERENCE_ACTIONS[new_state]["duration_ms"])
+
+    def _on_action_timeout(self):
+        """动作完成或被打断时不会遗留旧计时回调。"""
+        if self.current_state in REFERENCE_ACTIONS:
+            self._change_state(PetState.IDLE)
 
     def _on_idle_timeout(self):
         """待机超时，随机切换状态"""

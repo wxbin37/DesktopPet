@@ -1,4 +1,4 @@
-# 噜噜桌宠 · DesktopPetLulu 1.0.1
+# 噜噜桌宠 · DesktopPetLulu 1.1.0
 
 基于本仓库原有 DesktopPet 框架的独立角色，保留圆润黄色身体、橙色嘴部和头顶小橘子。原男生版和女生版不受影响。
 
@@ -8,6 +8,23 @@
 - Windows 10/11 64 位：双击 `DesktopPetLulu-Windows-x64.exe`。也可解压 ZIP，双击其中的 `DesktopPetLulu.exe`。
 - 分享给朋友：macOS 发送 DMG；Windows 发送 ZIP。无需安装 Python。
 - 当前使用本地临时签名，未进行 Apple 公证或 Windows 商业签名。系统首次运行可能显示来源提示。
+
+## 1.1.0 参考图动作扩展
+
+根据用户上传的六张图片，新增六组独立动画，每组四张分别绘制的姿势：
+
+| 参考图 | 新动作 | 动画内容 |
+| --- | --- | --- |
+| 1 | 搓手卖萌 | 双手合拢、叠手、搓手与闭眼 |
+| 2 | 张嘴大笑 | 嘴巴张合、露出一颗小门牙、张臂大笑 |
+| 3 | 单杠锻炼 | 抓杆悬垂、弯肘上拉、收腿、放下 |
+| 4 | 软团趴趴 | 趴下收手、低头眨眼、抬起下巴 |
+| 5 | 抬头张望 | 抬眼、左右抬头观察、回正 |
+| 6 | 歪头吐舌 | 歪头、伸舌、卷舌闭眼、收回 |
+
+闲置时会随机出现；右键噜噜或点击菜单栏/托盘图标，选择“参考图动作”即可点播。动作播放完毕回到待机，开始打字或拖拽会立即打断。原有走路、睡觉、开心等动作继续保留。
+
+公开源素材为生成的 `art/reference_actions/*_sheet.png`，提示词保存在同目录 `PROMPTS.json`。用户上传的原图不包含在仓库或安装包内。
 
 ## 1.0.1 走路修复
 
@@ -38,6 +55,7 @@
 ```sh
 python prepare_lulu_assets.py
 python build_fullbody_assets.py
+python build_reference_actions.py
 python extract_typing_overlay.py
 python enhance_ui_assets.py
 python test_core.py

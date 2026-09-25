@@ -55,6 +55,29 @@ class PetState:
     WAKEUP = "wakeup"
     DRAGGING = "dragging"
     SELFIE = "selfie"
+    SHY = "shy"
+    LAUGHING = "laughing"
+    PULLUPS = "pullups"
+    LOAF = "loaf"
+    LOOKING_UP = "looking_up"
+    TONGUE = "tongue"
+
+
+# 每组来自用户上传的一张参考图；独立素材与节奏，不复用旧动作改名。
+REFERENCE_ACTIONS = {
+    PetState.SHY: {"label": "搓手卖萌", "reference": 1, "duration_ms": 3600,
+                   "frame_ms": 260, "sequence": (0, 1, 2, 1, 3, 0)},
+    PetState.LAUGHING: {"label": "张嘴大笑", "reference": 2, "duration_ms": 3000,
+                        "frame_ms": 200, "sequence": (0, 1, 2, 3, 1, 0)},
+    PetState.PULLUPS: {"label": "单杠锻炼", "reference": 3, "duration_ms": 4800,
+                      "frame_ms": 300, "sequence": (0, 1, 2, 2, 3, 1, 0, 0)},
+    PetState.LOAF: {"label": "软团趴趴", "reference": 4, "duration_ms": 4800,
+                   "frame_ms": 400, "sequence": (0, 0, 1, 2, 1, 3, 0, 0)},
+    PetState.LOOKING_UP: {"label": "抬头张望", "reference": 5, "duration_ms": 4000,
+                         "frame_ms": 400, "sequence": (0, 1, 1, 2, 2, 3, 0)},
+    PetState.TONGUE: {"label": "歪头吐舌", "reference": 6, "duration_ms": 3600,
+                     "frame_ms": 260, "sequence": (0, 1, 2, 1, 3, 0)},
+}
 
 
 PET_STATES = [
@@ -66,6 +89,7 @@ PET_STATES = [
     PetState.SURPRISED,
     PetState.WAKEUP,
     PetState.DRAGGING,
+    *REFERENCE_ACTIONS,
 ]
 
 # 状态优先级（数值越大优先级越高）
@@ -79,15 +103,22 @@ STATE_PRIORITY = {
     PetState.SELFIE: 3,
     PetState.DRAGGING: 4,
     PetState.TYPING: 4,
+    **{state: 3 for state in REFERENCE_ACTIONS},
 }
 
 # 状态切换概率
 STATE_TRANSITION = {
     PetState.IDLE: {
-        PetState.IDLE: 0.55,
-        PetState.WALKING: 0.25,
-        PetState.HAPPY: 0.12,
-        PetState.SLEEPING: 0.08,
+        PetState.IDLE: 0.32,
+        PetState.WALKING: 0.18,
+        PetState.HAPPY: 0.06,
+        PetState.SLEEPING: 0.06,
+        PetState.SHY: 0.08,
+        PetState.LAUGHING: 0.06,
+        PetState.PULLUPS: 0.06,
+        PetState.LOAF: 0.06,
+        PetState.LOOKING_UP: 0.06,
+        PetState.TONGUE: 0.06,
     },
     PetState.WALKING: {
         PetState.IDLE: 0.5,

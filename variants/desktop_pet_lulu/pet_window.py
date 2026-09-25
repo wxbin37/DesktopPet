@@ -19,7 +19,8 @@ from config import (
     BONGO_KEY_HOLD_MS, BONGO_TAP_RELEASE_MS,
     WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_OPACITY, ALWAYS_ON_TOP,
     CLICK_ALPHA_THRESHOLD, MOUSE_INTERACTION_ENABLED, PetState, WALK_RANGE,
-    TYPING_TIMEOUT, WALK_SPEED, DEFAULT_CHARACTER, SELFIE_ENABLED, resource_path
+    TYPING_TIMEOUT, WALK_SPEED, DEFAULT_CHARACTER, SELFIE_ENABLED, resource_path,
+    REFERENCE_ACTIONS,
 )
 
 
@@ -307,6 +308,8 @@ class PetWindow(QWidget):
         state_menu.addAction(selfie_action)
         selfie_action.setVisible(SELFIE_ENABLED)
 
+        self._add_reference_action_menu(tray_menu)
+
         tray_menu.addSeparator()
 
         quit_action = QAction("退出", self)
@@ -316,6 +319,16 @@ class PetWindow(QWidget):
         self.tray_icon.setContextMenu(tray_menu)
         self.tray_icon.setToolTip("噜噜 · DesktopPetLulu")
         self.tray_icon.show()
+
+    def _add_reference_action_menu(self, parent_menu):
+        menu = parent_menu.addMenu("参考图动作")
+        for state, spec in REFERENCE_ACTIONS.items():
+            action = menu.addAction(spec["label"])
+            action.setData(state)
+            action.triggered.connect(
+                lambda checked=False, selected=state: self.state_machine.request_state(selected, True)
+            )
+        return menu
 
     def _on_state_changed(self, state):
         """状态改变回调"""
@@ -939,6 +952,8 @@ class PetWindow(QWidget):
         selfie_action.triggered.connect(lambda: self.state_machine.request_state(PetState.SELFIE, True))
         state_menu.addAction(selfie_action)
         selfie_action.setVisible(SELFIE_ENABLED)
+
+        self._add_reference_action_menu(menu)
 
         menu.addSeparator()
 

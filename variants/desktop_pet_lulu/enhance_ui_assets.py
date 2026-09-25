@@ -7,6 +7,7 @@ not have to stretch low-resolution pixmaps during painting.
 from pathlib import Path
 
 from PIL import Image, ImageChops, ImageFilter, ImageOps
+from config import REFERENCE_ACTIONS
 
 
 SOURCE_DIR = Path("assets/blue_chibi")
@@ -30,6 +31,7 @@ STATE_DIRS = [
     "wakeup",
     "dragging",
     "selfie",
+    *REFERENCE_ACTIONS,
 ]
 
 TYPING_BASE = "typing_mongocat_base.png"
